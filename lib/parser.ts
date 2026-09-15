@@ -57,6 +57,16 @@ function normalizar(texto: string): string {
   return texto.toLowerCase().trim()
 }
 
+const CONECTORES_MENORES = new Set(['de', 'del', 'la', 'el', 'los', 'las', 'en', 'y'])
+
+function capitalizarNombreProducto(nombre: string): string {
+  return nombre
+    .trim()
+    .split(/\s+/)
+    .map((w, i) => (i > 0 && CONECTORES_MENORES.has(w.toLowerCase()) ? w.toLowerCase() : capitalizar(w)))
+    .join(' ')
+}
+
 function extraerMonto(texto: string): number {
   // El signo "$" es opcional: el usuario casi nunca lo dice en voz alta.
   // Prioriza montos precedidos por "$" si están, pero no son obligatorios.
@@ -100,14 +110,16 @@ function cantidadAntesDe(texto: string, indice: number): number {
   return 1
 }
 
-// Precio explícito dicho por el usuario justo después de nombrar el producto,
-// ej. "2 galletitas a 5000", "3 fideos a $1800 c/u", "1 coca por 3500".
+// Precio explícito dicho por el usuario en la ventana de texto que sigue al producto,
+// ej. "2 galletitas a 5000", "3 fideos a $1800 c/u", "1 coca por 3500",
+// "3 botellas de aceite a Damián por 6000 pesos" (el conector puede no estar pegado
+// al producto porque en el medio aparece a quién se le vende).
 function extraerPrecioExplicito(ventana: string): number | null {
   const conSigno = ventana.match(/\$\s?(\d{1,3}(?:[.,]\d{3})+|\d+)/)
   if (conSigno) return parseInt(conSigno[1].replace(/[.,]/g, ''), 10)
 
   const conConector = ventana.match(
-    /^\s*(?:a|x|por)\s+\$?\s?(\d{1,3}(?:[.,]\d{3})+|\d+)/i,
+    /\b(?:a|x|por)\s+\$?\s?(\d{1,3}(?:[.,]\d{3})+|\d+)(?:\s*pesos?)?\b/i,
   )
   if (conConector) return parseInt(conConector[1].replace(/[.,]/g, ''), 10)
 
@@ -118,6 +130,52 @@ interface MatchCatalogo {
   entry: CatalogoEntry
   index: number
   length: number
+}
+
+const UNIDADES_GENERICAS = [
+  'paquetes?',
+  'paq\\.?',
+  'bolsas?',
+  'botellas?',
+  'latas?',
+  'cajas?',
+  'cajones?',
+  'unidades?',
+  'docenas?',
+  'kilos?',
+  'kg',
+  'litros?',
+  'packs?',
+  'frascos?',
+  'sobres?',
+  'bandejas?',
+  'bidones?',
+  'atados?',
+]
+
+// Cuando el producto no está en el catálogo conocido (ej. "15 paquetes de ravioles de
+// verduras"), lo reconoce igual a partir del patrón "<cantidad> <unidad> de <nombre>",
+// para que cualquier mercadería nueva se pueda dar de alta con solo mencionarla.
+function extraerItemGenerico(
+  texto: string,
+): { nombre: string; cantidad: number; precio: number | null } | null {
+  const numeros = Object.keys(PALABRAS_NUMERO)
+    .sort((a, b) => b.length - a.length)
+    .join('|')
+  const unidadPattern = UNIDADES_GENERICAS.join('|')
+  const re = new RegExp(
+    `\\b(\\d+|${numeros})\\s+(?:${unidadPattern})\\s+de\\s+([a-záéíóúñ]+(?:\\s+[a-záéíóúñ]+){0,4}?)(?=\\s+(?:a|x|por)\\s+\\$?\\s?\\d|\\s+\\$|\\s+y\\b|[,.]|$)`,
+    'i',
+  )
+  const m = texto.match(re)
+  if (!m || m.index === undefined) return null
+
+  const cantidad = /^\d+$/.test(m[1]) ? parseInt(m[1], 10) : PALABRAS_NUMERO[m[1]] ?? 1
+  const nombre = capitalizarNombreProducto(m[2])
+  const resto = texto.slice(m.index + m[0].length)
+  const precio = extraerPrecioExplicito(resto) ?? extraerPrecioExplicito(m[0])
+
+  return { nombre, cantidad, precio }
 }
 
 function extraerItems(texto: string, productos?: Producto[]): Item[] {
@@ -159,6 +217,24 @@ function extraerItems(texto: string, productos?: Producto[]): Item[] {
       precioExplicito ?? prodReal?.ultimo_precio ?? prodReal?.precio ?? entry.precio
 
     items.push({ producto: entry.nombre, cantidad, precio_unitario })
+  }
+
+  // Si no hay ningún producto del catálogo conocido, intenta reconocer una mercadería
+  // nueva por su nombre (ej. "15 paquetes de ravioles de verduras") para que se pueda
+  // dar de alta y sumar al stock aunque nunca se haya registrado antes.
+  if (items.length === 0) {
+    const generico = extraerItemGenerico(texto)
+    if (generico) {
+      const prodReal = productos?.find(
+        (p) => p.nombre.toLowerCase() === generico.nombre.toLowerCase(),
+      )
+      const precio_unitario = generico.precio ?? prodReal?.ultimo_precio ?? prodReal?.precio ?? 0
+      items.push({
+        producto: prodReal?.nombre ?? generico.nombre,
+        cantidad: generico.cantidad,
+        precio_unitario,
+      })
+    }
   }
 
   return items
@@ -203,7 +279,6 @@ function detectarCliente(textoOriginal: string): string | null {
     /\b([a-záéíóúñ]{3,})\s+me\s+debe\b/i,
     /\bme\s+debe\s+([a-záéíóúñ]{3,})\b/i,
     /\b(?:le\s+fi[oó]|le\s+fi[ée]|anot[aá]le|fiale)\s+a\s+([a-záéíóúñ]{3,})/i,
-    /\b(?:al|a la|el|la)\s+([a-záéíóúñ]{3,})/i,
   ]
   for (const re of patrones) {
     const m = texto.match(re)
@@ -213,6 +288,20 @@ function detectarCliente(textoOriginal: string): string | null {
         return capitalizar(palabra)
       }
     }
+  }
+
+  // Nombre propio (con mayúscula) precedido de "a/al/a la", en cualquier parte del mensaje
+  // original, ej. "Le vendí 3 botellas de aceite a Damián por 6000 pesos". Requiere
+  // mayúscula para no confundirse con "a la caja", "al boliche", etc.
+  const mConector = textoOriginal.match(/\b(?:al|a la|a)\s+([A-ZÁÉÍÓÚÑ][a-záéíóúñ]{2,})\b/)
+  if (mConector && !PALABRAS_EXCLUIDAS_CLIENTE.includes(mConector[1].toLowerCase())) {
+    return capitalizar(mConector[1])
+  }
+
+  // Alternativa más laxa, en minúsculas: "al pedro", "a la susana", "el gringo".
+  const mLaxo = texto.match(/\b(?:al|a la|el|la)\s+([a-záéíóúñ]{3,})/i)
+  if (mLaxo && !PALABRAS_EXCLUIDAS_CLIENTE.includes(mLaxo[1].toLowerCase())) {
+    return capitalizar(mLaxo[1])
   }
 
   // Última alternativa: nombre propio (con mayúscula) al inicio del mensaje original,
@@ -240,6 +329,13 @@ function detectarMotivo(texto: string): MotivoSalida {
 }
 
 function clasificar(texto: string, cliente: string | null): TipoOperacion {
+  // "no me pagó todavía", "no pagó", "sin pagar": indica que una venta quedó fiada, no que
+  // se cobró. Se detecta antes que el patrón de PAGO_DEUDA para no confundirlos.
+  const negacionDePago =
+    /\bno\s+(?:me\s+)?(?:pag[óoa]|abon[óoa])\b|\bsin\s+pagar\b|\btodav[íi]a\s+no\s+(?:me\s+)?pag/i.test(
+      texto,
+    )
+
   if (/se rompi|rotura|vencid|venció|tir[ée]|agarr[ée]|autoconsumo|se rompió|perd[íi]/i.test(texto))
     return 'SALIDA_STOCK'
 
@@ -253,12 +349,18 @@ function clasificar(texto: string, cliente: string | null): TipoOperacion {
   if (/entraron|entr[óo]|ingres[óo]|ingreso|repuse|reposici[óo]n|llegaron|compr[ée]\s+.*proveedor|compr[ée]\s+\d/i.test(texto))
     return 'INGRESO_STOCK'
 
-  if (/anotal|anot[áa]|anota|fial|fiado|\bfia\b|me paga\b|me va a pagar|debe|le fi[ao]/i.test(texto))
+  if (
+    negacionDePago ||
+    /anotal|anot[áa]|anota|fial|fiado|\bfia\b|me paga\b|me va a pagar|\bdebe\b|le fi[ao]|a cuenta|se lo fi[ée]/i.test(
+      texto,
+    )
+  )
     return 'NUEVO_DEUDA'
 
   if (
-    (cliente && /pag[óo]\b|me dej[óo]|sald[óo]|abon[óo]|me vino a dejar|de su deuda|de lo que deb[íi]a/i.test(texto)) ||
-    /pago de fiado/i.test(texto)
+    !negacionDePago &&
+    ((cliente && /pag[óo]\b|me dej[óo]|sald[óo]|abon[óo]|me vino a dejar|de su deuda|de lo que deb[íi]a/i.test(texto)) ||
+      /pago de fiado/i.test(texto))
   )
     return 'PAGO_DEUDA'
 
