@@ -1,0 +1,321 @@
+import type {
+  Item,
+  MedioPago,
+  MotivoSalida,
+  Operacion,
+  Producto,
+  TipoOperacion,
+} from './types'
+
+const NOMBRES_CONOCIDOS = ['Tano', 'Laura', 'Marta']
+
+const PALABRAS_NUMERO: Record<string, number> = {
+  un: 1,
+  una: 1,
+  uno: 1,
+  dos: 2,
+  tres: 3,
+  cuatro: 4,
+  cinco: 5,
+  seis: 6,
+  siete: 7,
+  ocho: 8,
+  nueve: 9,
+  diez: 10,
+  once: 11,
+  doce: 12,
+  docena: 12,
+  quince: 15,
+  veinte: 20,
+}
+
+// alias -> nombre canónico + precio de referencia
+interface CatalogoEntry {
+  alias: string[]
+  nombre: string
+  precio: number
+}
+
+const CATALOGO: CatalogoEntry[] = [
+  { alias: ['coca', 'cocas', 'coca-cola', 'gaseosa'], nombre: 'Coca-Cola 1.5L', precio: 3000 },
+  { alias: ['fideo', 'fideos', 'tallarines'], nombre: 'Fideos Lucchetti 500g', precio: 1500 },
+  { alias: ['ñoqui', 'ñoquis', 'noqui', 'noquis'], nombre: 'Ñoquis Lucchetti', precio: 1600 },
+  { alias: ['yerba'], nombre: 'Yerba Playadito 1kg', precio: 5200 },
+  { alias: ['aceite'], nombre: 'Aceite Girasol 1.5L', precio: 4200 },
+  { alias: ['leche', 'leches'], nombre: 'Leche Entera 1L', precio: 1800 },
+  { alias: ['pan', 'panes'], nombre: 'Pan', precio: 500 },
+  { alias: ['queso'], nombre: 'Queso cremoso', precio: 8900 },
+  { alias: ['fiambre'], nombre: 'Fiambre', precio: 7600 },
+  { alias: ['galletita', 'galletitas'], nombre: 'Galletitas', precio: 1200 },
+  { alias: ['atun', 'atún'], nombre: 'Atún', precio: 2400 },
+  { alias: ['agua', 'aguas'], nombre: 'Agua Mineral 2L', precio: 1400 },
+  { alias: ['azucar', 'azúcar'], nombre: 'Azúcar 1kg', precio: 2100 },
+  { alias: ['arroz'], nombre: 'Arroz 1kg', precio: 1900 },
+]
+
+function normalizar(texto: string): string {
+  return texto.toLowerCase().trim()
+}
+
+function extraerMonto(texto: string): number {
+  // El signo "$" es opcional: el usuario casi nunca lo dice en voz alta.
+  // Prioriza montos precedidos por "$" si están, pero no son obligatorios.
+  const conSigno = texto.match(/\$\s?(\d{1,3}(?:[.,]\d{3})+|\d+)([.,]\d{1,2})?/)
+  if (conSigno) {
+    return parseInt(conSigno[1].replace(/[.,]/g, ''), 10)
+  }
+  // Monto pegado a un verbo de plata (deuda/pago/venta/gasto/caja), con o sin "$",
+  // ej. "me debe 4000", "pagó 2.000", "gasté 500 en flete", "saqué 3000 de la caja".
+  const conVerbo = texto.match(
+    /(?:debe|deben|debo|deb[ií]a|pag[óo]|pagu[eé]|abon[óo]|cost[óo]|costaron|sale|vale|valen|gast[óeé]|saqu[éeo]|retir[óeé]|compr[óeé]|deposit[óeé]|cobr[óeé]|recib[íi][óeó]?|entregu[éeó]|prest[óeé]|regal[óeé])\s+\$?\s?(\d{1,3}(?:[.,]\d{3})+|\d+)/i,
+  )
+  if (conVerbo) {
+    return parseInt(conVerbo[1].replace(/[.,]/g, ''), 10)
+  }
+  // Último recurso: cualquier número "grande" (2+ cifras, o con separador de miles)
+  // en el texto, para no perder montos dichos sin signo ni verbo reconocido.
+  const suelto = texto.match(/\b(\d{1,3}(?:[.,]\d{3})+|\d{2,})\b/)
+  if (suelto) {
+    return parseInt(suelto[1].replace(/[.,]/g, ''), 10)
+  }
+  return 0
+}
+
+function palabraANumero(w: string): number | null {
+  const limpio = w.replace(/[^a-záéíóúñ0-9]/gi, '')
+  if (/^\d+$/.test(limpio)) return parseInt(limpio, 10)
+  if (limpio in PALABRAS_NUMERO) return PALABRAS_NUMERO[limpio]
+  return null
+}
+
+function cantidadAntesDe(texto: string, indice: number): number {
+  const previo = texto.slice(0, indice).trim()
+  if (!previo) return 1
+  const palabras = previo.split(/\s+/)
+  const inicio = Math.max(0, palabras.length - 5)
+  for (let i = palabras.length - 1; i >= inicio; i--) {
+    const n = palabraANumero(palabras[i])
+    if (n !== null) return n
+  }
+  return 1
+}
+
+// Precio explícito dicho por el usuario justo después de nombrar el producto,
+// ej. "2 galletitas a 5000", "3 fideos a $1800 c/u", "1 coca por 3500".
+function extraerPrecioExplicito(ventana: string): number | null {
+  const conSigno = ventana.match(/\$\s?(\d{1,3}(?:[.,]\d{3})+|\d+)/)
+  if (conSigno) return parseInt(conSigno[1].replace(/[.,]/g, ''), 10)
+
+  const conConector = ventana.match(
+    /^\s*(?:a|x|por)\s+\$?\s?(\d{1,3}(?:[.,]\d{3})+|\d+)/i,
+  )
+  if (conConector) return parseInt(conConector[1].replace(/[.,]/g, ''), 10)
+
+  return null
+}
+
+interface MatchCatalogo {
+  entry: CatalogoEntry
+  index: number
+  length: number
+}
+
+function extraerItems(texto: string, productos?: Producto[]): Item[] {
+  // Encuentra todas las menciones de productos y las ordena por posición en el texto,
+  // para poder acotar la ventana de búsqueda de precio de cada uno (hasta el próximo producto).
+  const matches: MatchCatalogo[] = []
+  const vistos = new Set<string>()
+
+  for (const entry of CATALOGO) {
+    if (vistos.has(entry.nombre)) continue
+    for (const alias of entry.alias) {
+      const re = new RegExp(`\\b${alias}\\b`, 'i')
+      const m = texto.match(re)
+      if (m && m.index !== undefined) {
+        vistos.add(entry.nombre)
+        matches.push({ entry, index: m.index, length: m[0].length })
+        break
+      }
+    }
+  }
+
+  matches.sort((a, b) => a.index - b.index)
+
+  const items: Item[] = []
+  for (let i = 0; i < matches.length; i++) {
+    const { entry, index, length } = matches[i]
+    const finVentana = i + 1 < matches.length ? matches[i + 1].index : texto.length
+    const ventana = texto.slice(index + length, finVentana)
+
+    const cantidad = cantidadAntesDe(texto, index)
+    const prodReal = productos?.find(
+      (p) => p.nombre.toLowerCase() === entry.nombre.toLowerCase(),
+    )
+
+    // Prioridad: precio que dice el usuario en el mensaje > último precio usado
+    // para ese producto > precio guardado en el catálogo/app.
+    const precioExplicito = extraerPrecioExplicito(ventana)
+    const precio_unitario =
+      precioExplicito ?? prodReal?.ultimo_precio ?? prodReal?.precio ?? entry.precio
+
+    items.push({ producto: entry.nombre, cantidad, precio_unitario })
+  }
+
+  return items
+}
+
+const PALABRAS_EXCLUIDAS_CLIENTE = [
+  'caja',
+  'boliche',
+  'viernes',
+  'lunes',
+  'martes',
+  'miercoles',
+  'miércoles',
+  'jueves',
+  'sabado',
+  'sábado',
+  'domingo',
+  'flete',
+  'luz',
+  'deuda',
+  'cuenta',
+  'plata',
+  'pago',
+  'fiado',
+  'proveedor',
+]
+
+function capitalizar(palabra: string): string {
+  return palabra.charAt(0).toUpperCase() + palabra.slice(1).toLowerCase()
+}
+
+function detectarCliente(textoOriginal: string): string | null {
+  const texto = normalizar(textoOriginal)
+
+  for (const nombre of NOMBRES_CONOCIDOS) {
+    if (new RegExp(`\\b${nombre}\\b`, 'i').test(texto)) return nombre
+  }
+
+  // Patrones explícitos con nombre propio (conocido o no): "Damian me debe", "le fio a Damian",
+  // "anotale a Damian", "al Pedro", "a la Susana", "el Gringo".
+  const patrones = [
+    /\b([a-záéíóúñ]{3,})\s+me\s+debe\b/i,
+    /\bme\s+debe\s+([a-záéíóúñ]{3,})\b/i,
+    /\b(?:le\s+fi[oó]|le\s+fi[ée]|anot[aá]le|fiale)\s+a\s+([a-záéíóúñ]{3,})/i,
+    /\b(?:al|a la|el|la)\s+([a-záéíóúñ]{3,})/i,
+  ]
+  for (const re of patrones) {
+    const m = texto.match(re)
+    if (m) {
+      const palabra = m[1]
+      if (!PALABRAS_EXCLUIDAS_CLIENTE.includes(palabra.toLowerCase())) {
+        return capitalizar(palabra)
+      }
+    }
+  }
+
+  // Última alternativa: nombre propio (con mayúscula) al inicio del mensaje original,
+  // ej. "Damian me debe 4000".
+  const mCap = textoOriginal.trim().match(/^([A-ZÁÉÍÓÚÑ][a-záéíóúñ]{2,})\b/)
+  if (mCap && !PALABRAS_EXCLUIDAS_CLIENTE.includes(mCap[1].toLowerCase())) {
+    return capitalizar(mCap[1])
+  }
+
+  return null
+}
+
+function detectarMedioPago(texto: string): MedioPago {
+  if (/transferencia|transfer|mercado\s?pago|mp\b/i.test(texto)) return 'TRANSFERENCIA'
+  if (/efectivo|cash|mano/i.test(texto)) return 'EFECTIVO'
+  return 'EFECTIVO'
+}
+
+function detectarMotivo(texto: string): MotivoSalida {
+  if (/rompi|rotura|roto|se cayó/i.test(texto)) return 'ROTURA'
+  if (/vencid|venció|vencimiento/i.test(texto)) return 'VENCIMIENTO'
+  if (/agarr|autoconsumo|para m[ií]|me com[íi]/i.test(texto)) return 'AUTOCONSUMO'
+  if (/perd[íi]|se perdió|pérdida/i.test(texto)) return 'PERDIDA'
+  return 'ROTURA'
+}
+
+function clasificar(texto: string, cliente: string | null): TipoOperacion {
+  if (/se rompi|rotura|vencid|venció|tir[ée]|agarr[ée]|autoconsumo|se rompió|perd[íi]/i.test(texto))
+    return 'SALIDA_STOCK'
+
+  if (
+    /\bgasto\b|flete|boleta|luz|agua de la|servicio|bolsas|alquiler|expensas|saqu[ée]\s+.*caja|pagu[ée]\s+(el|la)?\s*(flete|luz|boleta)/i.test(
+      texto,
+    )
+  )
+    return 'GASTO_OPERATIVO'
+
+  if (/entraron|entr[óo]|ingres[óo]|ingreso|repuse|reposici[óo]n|llegaron|compr[ée]\s+.*proveedor|compr[ée]\s+\d/i.test(texto))
+    return 'INGRESO_STOCK'
+
+  if (/anotal|anot[áa]|anota|fial|fiado|\bfia\b|me paga\b|me va a pagar|debe|le fi[ao]/i.test(texto))
+    return 'NUEVO_DEUDA'
+
+  if (
+    (cliente && /pag[óo]\b|me dej[óo]|sald[óo]|abon[óo]|me vino a dejar|de su deuda|de lo que deb[íi]a/i.test(texto)) ||
+    /pago de fiado/i.test(texto)
+  )
+    return 'PAGO_DEUDA'
+
+  return 'VENTA_CONTADO'
+}
+
+export function parsearMensaje(texto: string, productos?: Producto[]): Operacion {
+  const t = normalizar(texto)
+  const cliente = detectarCliente(texto)
+  const tipo = clasificar(t, cliente)
+  const items = extraerItems(t, productos)
+
+  // Cuando hay ítems detectados, el monto siempre se calcula a partir de ellos
+  // (cantidad × precio ya resuelto: explícito del usuario, último precio usado, o de catálogo).
+  // Esto evita que un precio unitario dentro del mensaje ("a $5000") se confunda con un
+  // monto total aparte cuando en realidad hay más de una unidad o más de un producto.
+  let monto =
+    items.length > 0 && (tipo === 'VENTA_CONTADO' || tipo === 'NUEVO_DEUDA' || tipo === 'INGRESO_STOCK')
+      ? items.reduce((acc, it) => acc + it.cantidad * it.precio_unitario, 0)
+      : extraerMonto(t)
+
+  let medio_pago: MedioPago = null
+  let motivo_salida: MotivoSalida = null
+
+  if (tipo === 'VENTA_CONTADO' || tipo === 'PAGO_DEUDA' || tipo === 'GASTO_OPERATIVO') {
+    medio_pago = detectarMedioPago(t)
+  } else if (tipo === 'NUEVO_DEUDA') {
+    medio_pago = 'PENDIENTE'
+  } else if (tipo === 'SALIDA_STOCK') {
+    motivo_salida = detectarMotivo(t)
+  }
+
+  return {
+    id: crypto.randomUUID(),
+    tipo_operacion: tipo,
+    cliente: tipo === 'NUEVO_DEUDA' || tipo === 'PAGO_DEUDA' ? cliente : null,
+    medio_pago,
+    monto_total: monto,
+    motivo_salida,
+    items,
+    texto_original: texto.trim(),
+    fecha: new Date().toISOString(),
+  }
+}
+
+export const ETIQUETAS_TIPO: Record<TipoOperacion, string> = {
+  VENTA_CONTADO: 'VENTA CONTADO',
+  NUEVO_DEUDA: 'NUEVA DEUDA (FIADO)',
+  PAGO_DEUDA: 'PAGO DE FIADO',
+  INGRESO_STOCK: 'INGRESO DE STOCK',
+  SALIDA_STOCK: 'SALIDA DE STOCK',
+  GASTO_OPERATIVO: 'GASTO OPERATIVO',
+}
+
+export const ETIQUETAS_MOTIVO: Record<NonNullable<MotivoSalida>, string> = {
+  ROTURA: 'Rotura',
+  VENCIMIENTO: 'Vencimiento',
+  AUTOCONSUMO: 'Autoconsumo',
+  PERDIDA: 'Pérdida',
+}
