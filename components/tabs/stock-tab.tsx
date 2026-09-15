@@ -56,7 +56,7 @@ export function StockTab() {
   const valorTotal = estado.productos.reduce((acc, p) => acc + p.stock * p.precio, 0)
 
   return (
-    <div className="flex flex-col gap-4 p-4">
+    <div className="flex flex-col gap-4 p-4 sm:p-6">
       <header>
         <h1 className="text-xl font-extrabold text-foreground">Stock de mercadería</h1>
         <p className="text-sm text-muted-foreground">Qué queda de cada producto en el local</p>
@@ -107,7 +107,7 @@ export function StockTab() {
           </p>
         </div>
       ) : (
-        <div className="flex flex-col gap-2">
+        <div className="grid gap-2 md:grid-cols-2">
           {productos.map((p) => {
             const est = ESTILOS[nivel(p)]
             const pct = Math.min(100, Math.round((p.stock / Math.max(p.stock_minimo * 2, 1)) * 100))

@@ -26,7 +26,7 @@ export function ClientesTab({ onPrefill }: { onPrefill: (texto: string) => void 
   const totalDeuda = conDeuda.reduce((a, c) => a + c.saldo_deuda, 0)
 
   return (
-    <div className="flex flex-col gap-4 p-4">
+    <div className="flex flex-col gap-4 p-4 sm:p-6">
       <header>
         <h1 className="text-xl font-extrabold text-foreground">Fiados</h1>
         <p className="text-sm text-muted-foreground">La libreta de deudas del barrio</p>
@@ -40,7 +40,7 @@ export function ClientesTab({ onPrefill }: { onPrefill: (texto: string) => void 
         </p>
       </div>
 
-      <div className="flex flex-col gap-2">
+      <div className="grid gap-2 md:grid-cols-2">
         {estado.clientes.map((c) => (
           <button
             key={c.id}

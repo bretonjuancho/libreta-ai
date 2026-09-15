@@ -21,7 +21,7 @@ export function BottomNav({
 }) {
   return (
     <nav className="sticky bottom-0 z-30 border-t border-border bg-card/95 backdrop-blur">
-      <div className="mx-auto flex max-w-md items-stretch justify-around px-2 py-1.5">
+      <div className="mx-auto flex w-full max-w-md items-stretch justify-around px-2 py-1.5 sm:max-w-3xl sm:px-6 xl:max-w-6xl">
         {ITEMS.map(({ tab, label, icon: Icon }) => {
           const activoItem = activo === tab
           return (
@@ -29,7 +29,7 @@ export function BottomNav({
               key={tab}
               type="button"
               onClick={() => onCambiar(tab)}
-              className={`flex flex-1 flex-col items-center gap-0.5 rounded-xl py-2 text-[11px] font-semibold transition-colors ${
+              className={`flex flex-1 flex-col items-center gap-0.5 rounded-xl py-2 text-[11px] font-semibold transition-colors sm:flex-none sm:px-5 sm:text-xs ${
                 activoItem ? 'text-celeste' : 'text-muted-foreground'
               }`}
             >

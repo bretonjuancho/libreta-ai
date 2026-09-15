@@ -22,7 +22,7 @@ export function SuccessOverlay({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-primary/40 p-5 backdrop-blur-sm">
-      <div className="w-full max-w-sm rounded-3xl bg-background p-6 text-center shadow-2xl duration-300 animate-in zoom-in-95">
+      <div className="w-full max-w-sm rounded-3xl bg-background p-6 text-center shadow-2xl duration-300 animate-in zoom-in-95 sm:max-w-md">
         <div className="mx-auto mb-4 flex size-20 items-center justify-center rounded-full bg-success/15 duration-500 animate-in zoom-in-50">
           <div className="flex size-14 items-center justify-center rounded-full bg-success text-success-foreground">
             <Check className="size-8" strokeWidth={3} />

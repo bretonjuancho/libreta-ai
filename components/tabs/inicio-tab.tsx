@@ -27,7 +27,7 @@ export function InicioTab({
   const ultimos = estado.historial.slice(0, 3)
 
   return (
-    <div className="flex flex-col gap-5 p-4 pb-4">
+    <div className="flex flex-col gap-5 p-4 pb-4 sm:p-6">
       <header className="flex items-start justify-between">
         <div>
           <div className="flex items-center gap-2">
@@ -53,7 +53,7 @@ export function InicioTab({
           <Lightbulb className="size-4 text-fiado" />
           <h2 className="text-sm font-bold text-foreground">¿Qué podés decirle?</h2>
         </div>
-        <div className="flex flex-col gap-2">
+        <div className="grid gap-2 sm:grid-cols-3">
           {EJEMPLOS.map((ej) => (
             <button
               key={ej}
@@ -79,7 +79,7 @@ export function InicioTab({
             Ver todos
           </button>
         </div>
-        <div className="flex flex-col gap-2">
+        <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
           {ultimos.map((op) => (
             <MovimientoItem key={op.id} op={op} />
           ))}

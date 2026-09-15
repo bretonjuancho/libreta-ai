@@ -243,13 +243,13 @@ export function ResumenTab() {
   const mostrarStock = metricaFlujo !== 'dinero'
 
   return (
-    <div className="flex flex-col gap-5 p-4 pb-4">
+    <div className="flex flex-col gap-5 p-4 pb-4 sm:p-6">
       <header>
         <h1 className="text-2xl font-extrabold tracking-tight text-foreground">Resumen</h1>
         <p className="text-sm text-muted-foreground">Cómo viene el {PERFIL.nombre}</p>
       </header>
 
-      <section className="grid grid-cols-2 gap-3">
+      <section className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
         <Kpi
           icon={ArrowUpRight}
           tono="success"
@@ -264,9 +264,6 @@ export function ResumenTab() {
           valor={formatARS(kpis.balance)}
         />
         <Kpi icon={BookUser} tono="fiado" label="En la calle" valor={formatARS(kpis.deuda)} />
-      </section>
-
-      <section className="grid grid-cols-2 gap-3">
         <Kpi icon={Receipt} tono="celeste" label="Ticket promedio hoy" valor={formatARS(ticketPromedio)} />
         <Kpi
           icon={AlertTriangle}
@@ -276,6 +273,7 @@ export function ResumenTab() {
         />
       </section>
 
+      <div className="grid items-start gap-5 xl:grid-cols-2">
       <Panel titulo="Flujo del día" subtitulo="Ingresos y egresos por franja horaria">
         <ChartContainer config={flujoConfig} className="h-[190px] w-full">
           <BarChart accessibilityLayer data={flujo} margin={{ left: -8, right: 8, top: 8 }}>
@@ -545,6 +543,7 @@ export function ResumenTab() {
           </>
         )}
       </Panel>
+      </div>
     </div>
   )
 }

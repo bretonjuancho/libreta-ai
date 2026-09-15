@@ -16,7 +16,7 @@ export function ClienteFicha({
   onPrefill: (texto: string) => void
 }) {
   return (
-    <div className="flex flex-col gap-4 p-4">
+    <div className="flex flex-col gap-4 p-4 sm:p-6">
       <button
         type="button"
         onClick={onVolver}
@@ -60,7 +60,7 @@ export function ClienteFicha({
             Todavía no hay movimientos registrados.
           </div>
         ) : (
-          <div className="flex flex-col gap-2">
+          <div className="grid gap-2 md:grid-cols-2">
             {cliente.movimientos.map((op) => (
               <MovimientoItem key={op.id} op={op} />
             ))}

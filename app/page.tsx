@@ -45,7 +45,7 @@ function App() {
   }
 
   return (
-    <div className="mx-auto flex min-h-dvh max-w-md flex-col bg-background">
+    <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col bg-background sm:max-w-3xl xl:max-w-6xl">
       <main className="flex-1">
         {tab === 'inicio' && (
           <InicioTab

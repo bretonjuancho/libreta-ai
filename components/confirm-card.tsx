@@ -51,8 +51,8 @@ export function ConfirmCard({
   const Icon = visual.icon
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-primary/40 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-t-3xl bg-background p-5 pb-6 shadow-2xl duration-300 animate-in slide-in-from-bottom">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-primary/40 backdrop-blur-sm sm:items-center sm:p-6">
+      <div className="max-h-[92dvh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-background p-5 pb-6 shadow-2xl duration-300 animate-in slide-in-from-bottom sm:rounded-3xl sm:slide-in-from-bottom-4">
         <div className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-border" />
 
         <h2 className="mb-3 text-center text-base font-bold text-foreground">Confirmar registro</h2>

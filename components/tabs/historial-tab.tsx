@@ -26,7 +26,7 @@ export function HistorialTab() {
       : estado.historial.filter((op) => op.tipo_operacion === filtro)
 
   return (
-    <div className="flex flex-col gap-4 p-4">
+    <div className="flex flex-col gap-4 p-4 sm:p-6">
       <header>
         <h1 className="text-xl font-extrabold text-foreground">Historial de actividad</h1>
         <p className="text-sm text-muted-foreground">Lista completa de cambios del día</p>
@@ -61,7 +61,7 @@ export function HistorialTab() {
           </p>
         </div>
       ) : (
-        <div className="flex flex-col gap-2">
+        <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
           {lista.map((op) => (
             <MovimientoItem key={op.id} op={op} />
           ))}
