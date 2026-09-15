@@ -26,20 +26,20 @@ export const TIPO_VISUAL: Record<TipoOperacion, TipoVisual> = {
   },
   NUEVO_DEUDA: {
     icon: NotebookPen,
-    chip: 'bg-fiado/15 text-fiado',
-    iconWrap: 'bg-fiado/15 text-fiado',
+    chip: 'bg-fiado/12 text-fiado',
+    iconWrap: 'bg-fiado/12 text-fiado',
     titulo: 'Nuevo fiado',
   },
   PAGO_DEUDA: {
     icon: HandCoins,
-    chip: 'bg-celeste/15 text-celeste',
-    iconWrap: 'bg-celeste/15 text-celeste',
+    chip: 'bg-celeste/12 text-celeste',
+    iconWrap: 'bg-celeste/12 text-celeste',
     titulo: 'Pago de fiado',
   },
   INGRESO_STOCK: {
     icon: PackagePlus,
-    chip: 'bg-primary/10 text-primary',
-    iconWrap: 'bg-primary/10 text-primary',
+    chip: 'bg-primary/8 text-primary',
+    iconWrap: 'bg-primary/8 text-primary',
     titulo: 'Ingreso de stock',
   },
   SALIDA_STOCK: {
@@ -50,8 +50,8 @@ export const TIPO_VISUAL: Record<TipoOperacion, TipoVisual> = {
   },
   GASTO_OPERATIVO: {
     icon: Receipt,
-    chip: 'bg-muted-foreground/15 text-muted-foreground',
-    iconWrap: 'bg-muted-foreground/15 text-muted-foreground',
+    chip: 'bg-muted-foreground/12 text-muted-foreground',
+    iconWrap: 'bg-muted-foreground/12 text-muted-foreground',
     titulo: 'Gasto operativo',
   },
 }

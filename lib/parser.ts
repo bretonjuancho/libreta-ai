@@ -427,12 +427,12 @@ export function parsearMensaje(texto: string, productos?: Producto[]): Operacion
 }
 
 export const ETIQUETAS_TIPO: Record<TipoOperacion, string> = {
-  VENTA_CONTADO: 'VENTA CONTADO',
-  NUEVO_DEUDA: 'NUEVA DEUDA (FIADO)',
-  PAGO_DEUDA: 'PAGO DE FIADO',
-  INGRESO_STOCK: 'INGRESO DE STOCK',
-  SALIDA_STOCK: 'SALIDA DE STOCK',
-  GASTO_OPERATIVO: 'GASTO OPERATIVO',
+  VENTA_CONTADO: 'Venta contado',
+  NUEVO_DEUDA: 'Nuevo fiado',
+  PAGO_DEUDA: 'Pago de fiado',
+  INGRESO_STOCK: 'Ingreso de stock',
+  SALIDA_STOCK: 'Salida de stock',
+  GASTO_OPERATIVO: 'Gasto operativo',
 }
 
 export const ETIQUETAS_MOTIVO: Record<NonNullable<MotivoSalida>, string> = {

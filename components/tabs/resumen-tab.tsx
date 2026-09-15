@@ -13,17 +13,6 @@ import {
   YAxis,
 } from 'recharts'
 import {
-  AlertTriangle,
-  ArrowDownRight,
-  ArrowUpRight,
-  BookUser,
-  LineChart as LineChartIcon,
-  PackageX,
-  Receipt,
-  Scale,
-  TrendingUp,
-} from 'lucide-react'
-import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
@@ -34,7 +23,6 @@ import { PERFIL } from '@/lib/mock-data'
 import { formatARS } from '@/lib/format'
 import { ETIQUETAS_MOTIVO } from '@/lib/parser'
 import type { Operacion } from '@/lib/types'
-import type { LucideIcon } from 'lucide-react'
 
 const FRANJAS = [
   { label: 'Mañana', desde: 6, hasta: 12 },
@@ -54,10 +42,17 @@ const OPCIONES_PERIODO: { value: Periodo; label: string }[] = [
   { value: 'anio', label: 'Año' },
 ]
 
+const OPCIONES_METRICA: { value: MetricaFlujo; label: string }[] = [
+  { value: 'dinero', label: 'Dinero' },
+  { value: 'stock', label: 'Stock' },
+  { value: 'ambas', label: 'Ambas' },
+]
+
 function estaEnPeriodo(fechaISO: string, periodo: Periodo, ahora: Date): boolean {
   const d = new Date(fechaISO)
   if (periodo === 'dia') return d.toDateString() === ahora.toDateString()
-  if (periodo === 'mes') return d.getFullYear() === ahora.getFullYear() && d.getMonth() === ahora.getMonth()
+  if (periodo === 'mes')
+    return d.getFullYear() === ahora.getFullYear() && d.getMonth() === ahora.getMonth()
   return d.getFullYear() === ahora.getFullYear()
 }
 
@@ -66,7 +61,8 @@ function esHoy(fechaISO: string, ahora: Date): boolean {
 }
 
 function deltaDinero(op: Operacion): number {
-  if (op.tipo_operacion === 'VENTA_CONTADO' || op.tipo_operacion === 'PAGO_DEUDA') return op.monto_total
+  if (op.tipo_operacion === 'VENTA_CONTADO' || op.tipo_operacion === 'PAGO_DEUDA')
+    return op.monto_total
   if (op.tipo_operacion === 'GASTO_OPERATIVO') return -op.monto_total
   return 0
 }
@@ -97,8 +93,8 @@ const flujoConfig = {
 } satisfies ChartConfig
 
 const flujoLineaConfig = {
-  dinero: { label: 'Dinero (neto)', color: 'var(--chart-1)' },
-  stock: { label: 'Stock (unidades netas)', color: 'var(--chart-4)' },
+  dinero: { label: 'Dinero (neto)', color: 'var(--chart-4)' },
+  stock: { label: 'Stock (unidades netas)', color: 'var(--chart-1)' },
 } satisfies ChartConfig
 
 const cajaConfig = {
@@ -145,7 +141,12 @@ export function ResumenTab() {
 
   const caja = useMemo(
     () => [
-      { medio: 'efectivo', label: 'Efectivo', value: estado.caja.efectivo, fill: 'var(--color-efectivo)' },
+      {
+        medio: 'efectivo',
+        label: 'Efectivo',
+        value: estado.caja.efectivo,
+        fill: 'var(--color-efectivo)',
+      },
       {
         medio: 'transferencia',
         label: 'Transferencia',
@@ -169,8 +170,7 @@ export function ResumenTab() {
   const productos = useMemo(() => {
     const acc = new Map<string, number>()
     for (const op of estado.historial) {
-      if (op.tipo_operacion !== 'VENTA_CONTADO' && op.tipo_operacion !== 'NUEVO_DEUDA')
-        continue
+      if (op.tipo_operacion !== 'VENTA_CONTADO' && op.tipo_operacion !== 'NUEVO_DEUDA') continue
       if (!estaEnPeriodo(op.fecha, periodoVentas, ahora)) continue
       for (const it of op.items) {
         acc.set(it.producto, (acc.get(it.producto) ?? 0) + it.cantidad * it.precio_unitario)
@@ -191,7 +191,10 @@ export function ResumenTab() {
 
   const buckets = useMemo(() => {
     if (periodoFlujo === 'dia')
-      return Array.from({ length: ahora.getHours() + 1 }, (_, h) => ({ key: `${h}`, label: `${h}h` }))
+      return Array.from({ length: ahora.getHours() + 1 }, (_, h) => ({
+        key: `${h}`,
+        label: `${h}h`,
+      }))
     if (periodoFlujo === 'mes')
       return Array.from({ length: ahora.getDate() }, (_, i) => ({ key: `${i + 1}`, label: `${i + 1}` }))
     return Array.from({ length: ahora.getMonth() + 1 }, (_, i) => ({ key: MESES[i], label: MESES[i] }))
@@ -237,296 +240,196 @@ export function ResumenTab() {
   )
 
   const deudaConfig = { deuda: { label: 'Deuda', color: 'var(--chart-3)' } } satisfies ChartConfig
-  const prodConfig = { monto: { label: 'Vendido', color: 'var(--chart-1)' } } satisfies ChartConfig
+  const prodConfig = { monto: { label: 'Vendido', color: 'var(--chart-2)' } } satisfies ChartConfig
   const mermaConfig = { valor: { label: 'Pérdida', color: 'var(--chart-5)' } } satisfies ChartConfig
   const mostrarDinero = metricaFlujo !== 'stock'
   const mostrarStock = metricaFlujo !== 'dinero'
 
   return (
-    <div className="flex flex-col gap-5 p-4 pb-4 sm:p-6">
+    <div className="flex flex-col gap-4 p-4 sm:p-6">
       <header>
-        <h1 className="text-2xl font-extrabold tracking-tight text-foreground">Resumen</h1>
-        <p className="text-sm text-muted-foreground">Cómo viene el {PERFIL.nombre}</p>
+        <h1 className="text-[22px] font-semibold leading-tight tracking-tight text-foreground">
+          Resumen
+        </h1>
+        <p className="text-[13px] text-muted-foreground">Cómo viene el {PERFIL.nombre} hoy</p>
       </header>
 
-      <section className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+      <section className="grid grid-cols-2 gap-2.5 md:grid-cols-3 xl:grid-cols-6">
+        <Kpi tono="success" label="Ingresos hoy" valor={formatARS(kpis.ingresos)} />
+        <Kpi tono="danger" label="Egresos hoy" valor={formatARS(kpis.egresos)} />
         <Kpi
-          icon={ArrowUpRight}
-          tono="success"
-          label="Ingresos hoy"
-          valor={formatARS(kpis.ingresos)}
-        />
-        <Kpi icon={ArrowDownRight} tono="danger" label="Egresos hoy" valor={formatARS(kpis.egresos)} />
-        <Kpi
-          icon={Scale}
           tono={kpis.balance >= 0 ? 'celeste' : 'danger'}
           label="Balance del día"
           valor={formatARS(kpis.balance)}
         />
-        <Kpi icon={BookUser} tono="fiado" label="En la calle" valor={formatARS(kpis.deuda)} />
-        <Kpi icon={Receipt} tono="celeste" label="Ticket promedio hoy" valor={formatARS(ticketPromedio)} />
+        <Kpi tono="fiado" label="En la calle" valor={formatARS(kpis.deuda)} />
+        <Kpi tono="celeste" label="Ticket promedio" valor={formatARS(ticketPromedio)} />
         <Kpi
-          icon={AlertTriangle}
           tono={alertasStock.length > 0 ? 'danger' : 'success'}
-          label="Alertas de stock"
-          valor={`${alertasStock.length} producto${alertasStock.length === 1 ? '' : 's'}`}
+          label="Para reponer"
+          valor={`${alertasStock.length} ${alertasStock.length === 1 ? 'producto' : 'productos'}`}
         />
       </section>
 
-      <div className="grid items-start gap-5 xl:grid-cols-2">
-      <Panel titulo="Flujo del día" subtitulo="Ingresos y egresos por franja horaria">
-        <ChartContainer config={flujoConfig} className="h-[190px] w-full">
-          <BarChart accessibilityLayer data={flujo} margin={{ left: -8, right: 8, top: 8 }}>
-            <XAxis
-              dataKey="franja"
-              tickLine={false}
-              axisLine={false}
-              tickMargin={8}
-              className="text-[10px]"
-            />
-            <YAxis
-              tickLine={false}
-              axisLine={false}
-              width={44}
-              tickFormatter={(v: number) => compacto(v)}
-              className="text-[10px]"
-            />
-            <ChartTooltip
-              cursor={false}
-              content={<ChartTooltipContent formatter={(v) => formatARS(Number(v))} />}
-            />
-            <Bar dataKey="ingresos" fill="var(--color-ingresos)" radius={[5, 5, 0, 0]} />
-            <Bar dataKey="egresos" fill="var(--color-egresos)" radius={[5, 5, 0, 0]} />
-          </BarChart>
-        </ChartContainer>
-        <Leyenda items={[['var(--chart-2)', 'Ingresos'], ['var(--chart-5)', 'Egresos']]} />
-      </Panel>
-
-      <Panel
-        titulo="Flujo de stock y dinero"
-        subtitulo={`Movimiento neto ${
-          periodoFlujo === 'dia' ? 'de hoy, por hora' : periodoFlujo === 'mes' ? 'de este mes, por día' : 'de este año, por mes'
-        }`}
-        icon={LineChartIcon}
-      >
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <Segmented
-            value={metricaFlujo}
-            onChange={setMetricaFlujo}
-            options={[
-              { value: 'dinero', label: 'Dinero' },
-              { value: 'stock', label: 'Stock' },
-              { value: 'ambas', label: 'Ambas' },
-            ]}
-          />
-          <Segmented value={periodoFlujo} onChange={setPeriodoFlujo} options={OPCIONES_PERIODO} />
-        </div>
-        <ChartContainer config={flujoLineaConfig} className="h-[190px] w-full">
-          <LineChart accessibilityLayer data={flujoLinea} margin={{ left: -8, right: 8, top: 8 }}>
-            <XAxis
-              dataKey="periodo"
-              tickLine={false}
-              axisLine={false}
-              tickMargin={8}
-              interval="preserveStartEnd"
-              className="text-[10px]"
-            />
-            {mostrarDinero && (
+      <div className="grid items-start gap-4 xl:grid-cols-2">
+        <Panel titulo="Flujo del día" subtitulo="Ingresos y egresos por franja horaria">
+          <ChartContainer config={flujoConfig} className="h-[190px] w-full">
+            <BarChart accessibilityLayer data={flujo} margin={{ left: -8, right: 8, top: 8 }}>
+              <XAxis
+                dataKey="franja"
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+                className="text-[10px]"
+              />
               <YAxis
-                yAxisId="dinero"
                 tickLine={false}
                 axisLine={false}
                 width={44}
                 tickFormatter={(v: number) => compacto(v)}
                 className="text-[10px]"
               />
-            )}
-            {mostrarStock && (
-              <YAxis
-                yAxisId="stock"
-                orientation={mostrarDinero ? 'right' : 'left'}
+              <ChartTooltip
+                cursor={false}
+                content={<ChartTooltipContent formatter={(v) => formatARS(Number(v))} />}
+              />
+              <Bar dataKey="ingresos" fill="var(--color-ingresos)" radius={[3, 3, 0, 0]} />
+              <Bar dataKey="egresos" fill="var(--color-egresos)" radius={[3, 3, 0, 0]} />
+            </BarChart>
+          </ChartContainer>
+          <Leyenda items={[['var(--chart-2)', 'Ingresos'], ['var(--chart-5)', 'Egresos']]} />
+        </Panel>
+
+        <Panel
+          titulo="Flujo de stock y dinero"
+          subtitulo={`Movimiento neto ${
+            periodoFlujo === 'dia'
+              ? 'de hoy, por hora'
+              : periodoFlujo === 'mes'
+                ? 'de este mes, por día'
+                : 'de este año, por mes'
+          }`}
+          acciones={<Segmented value={periodoFlujo} onChange={setPeriodoFlujo} options={OPCIONES_PERIODO} />}
+        >
+          <div className="mb-3">
+            <Segmented value={metricaFlujo} onChange={setMetricaFlujo} options={OPCIONES_METRICA} />
+          </div>
+          <ChartContainer config={flujoLineaConfig} className="h-[190px] w-full">
+            <LineChart accessibilityLayer data={flujoLinea} margin={{ left: -8, right: 8, top: 8 }}>
+              <XAxis
+                dataKey="periodo"
                 tickLine={false}
                 axisLine={false}
-                width={32}
+                tickMargin={8}
+                interval="preserveStartEnd"
                 className="text-[10px]"
               />
-            )}
-            <ChartTooltip
-              cursor={false}
-              content={
-                <ChartTooltipContent
-                  formatter={(v, name) => (name === 'dinero' ? formatARS(Number(v)) : `${v} u.`)}
-                />
-              }
-            />
-            {mostrarDinero && (
-              <Line
-                yAxisId="dinero"
-                dataKey="dinero"
-                type="monotone"
-                stroke="var(--color-dinero)"
-                strokeWidth={2}
-                dot={false}
-              />
-            )}
-            {mostrarStock && (
-              <Line
-                yAxisId="stock"
-                dataKey="stock"
-                type="monotone"
-                stroke="var(--color-stock)"
-                strokeWidth={2}
-                dot={false}
-              />
-            )}
-          </LineChart>
-        </ChartContainer>
-        {metricaFlujo === 'ambas' && (
-          <Leyenda items={[['var(--chart-1)', 'Dinero (neto)'], ['var(--chart-4)', 'Stock (unidades)']]} />
-        )}
-      </Panel>
-
-      <Panel titulo="Composición de la caja" subtitulo="De dónde viene la plata disponible">
-        <div className="flex items-center gap-2">
-          <ChartContainer config={cajaConfig} className="h-[170px] flex-1">
-            <PieChart>
-              <ChartTooltip
-                content={<ChartTooltipContent nameKey="label" formatter={(v) => formatARS(Number(v))} />}
-              />
-              <Pie data={caja} dataKey="value" nameKey="label" innerRadius={44} strokeWidth={4}>
-                {caja.map((d) => (
-                  <Cell key={d.medio} fill={d.fill} />
-                ))}
-              </Pie>
-            </PieChart>
-          </ChartContainer>
-          <div className="flex flex-col gap-3 pr-1">
-            {caja.map((d) => (
-              <div key={d.medio} className="flex flex-col">
-                <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <span className="size-2.5 rounded-full" style={{ background: d.fill }} />
-                  {d.label}
-                </span>
-                <span className="text-sm font-bold text-foreground">{formatARS(d.value)}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </Panel>
-
-      <Panel titulo="Deuda en la calle" subtitulo="Quiénes te deben más">
-        {deudores.length === 0 ? (
-          <Vacio texto="No hay fiados pendientes. ¡Todo cobrado!" />
-        ) : (
-          <ChartContainer
-            config={deudaConfig}
-            className="w-full"
-            style={{ height: deudores.length * 44 + 20 }}
-          >
-            <BarChart accessibilityLayer data={deudores} layout="vertical" margin={{ left: 4, right: 44 }}>
-              <YAxis
-                dataKey="nombre"
-                type="category"
-                tickLine={false}
-                axisLine={false}
-                width={72}
-                className="text-xs"
-              />
-              <XAxis type="number" hide />
-              <ChartTooltip
-                cursor={false}
-                content={<ChartTooltipContent formatter={(v) => formatARS(Number(v))} />}
-              />
-              <Bar dataKey="deuda" fill="var(--color-deuda)" radius={5} />
-            </BarChart>
-          </ChartContainer>
-        )}
-      </Panel>
-
-      <Panel
-        titulo="Lo más vendido"
-        subtitulo={`Productos que más facturaron ${
-          periodoVentas === 'dia' ? 'hoy' : periodoVentas === 'mes' ? 'este mes' : 'este año'
-        }`}
-      >
-        <div className="mb-3 flex justify-end">
-          <Segmented value={periodoVentas} onChange={setPeriodoVentas} options={OPCIONES_PERIODO} />
-        </div>
-        {productos.length === 0 ? (
-          <Vacio texto="Todavía no registraste ventas con productos." />
-        ) : (
-          <ChartContainer
-            config={prodConfig}
-            className="w-full"
-            style={{ height: productos.length * 44 + 20 }}
-          >
-            <BarChart accessibilityLayer data={productos} layout="vertical" margin={{ left: 4, right: 44 }}>
-              <YAxis
-                dataKey="producto"
-                type="category"
-                tickLine={false}
-                axisLine={false}
-                width={96}
-                className="text-[11px]"
-                tickFormatter={(v: string) => (v.length > 14 ? v.slice(0, 13) + '…' : v)}
-              />
-              <XAxis type="number" hide />
-              <ChartTooltip
-                cursor={false}
-                content={<ChartTooltipContent formatter={(v) => formatARS(Number(v))} />}
-              />
-              <Bar dataKey="monto" fill="var(--color-monto)" radius={5} />
-            </BarChart>
-          </ChartContainer>
-        )}
-      </Panel>
-
-      <Panel titulo="Alertas de stock" subtitulo="Productos que se están agotando" icon={AlertTriangle}>
-        {alertasStock.length === 0 ? (
-          <Vacio texto="Ningún producto está bajo el mínimo. ¡Bien surtido!" />
-        ) : (
-          <ul className="flex flex-col gap-3">
-            {alertasStock.map((p) => {
-              const pct = Math.min(100, Math.round((p.stock / Math.max(1, p.stock_minimo)) * 100))
-              const critico = p.stock === 0
-              return (
-                <li key={p.id} className="flex flex-col gap-1">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-semibold text-foreground">{p.nombre}</span>
-                    <span className={critico ? 'font-bold text-danger' : 'font-bold text-fiado'}>
-                      {p.stock} {p.unidad} en stock
-                    </span>
-                  </div>
-                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-                    <div
-                      className={`h-full rounded-full ${critico ? 'bg-danger' : 'bg-fiado'}`}
-                      style={{ width: `${pct}%` }}
-                    />
-                  </div>
-                </li>
-              )
-            })}
-          </ul>
-        )}
-      </Panel>
-
-      <Panel titulo="Mermas de stock" subtitulo="Pérdidas por rotura, vencimiento u otros motivos" icon={PackageX}>
-        {mermas.length === 0 ? (
-          <Vacio texto="No registraste mermas de stock." />
-        ) : (
-          <>
-            <ChartContainer
-              config={mermaConfig}
-              className="w-full"
-              style={{ height: mermas.length * 44 + 20 }}
-            >
-              <BarChart accessibilityLayer data={mermas} layout="vertical" margin={{ left: 4, right: 52 }}>
+              {mostrarDinero && (
                 <YAxis
-                  dataKey="motivo"
+                  yAxisId="dinero"
+                  tickLine={false}
+                  axisLine={false}
+                  width={44}
+                  tickFormatter={(v: number) => compacto(v)}
+                  className="text-[10px]"
+                />
+              )}
+              {mostrarStock && (
+                <YAxis
+                  yAxisId="stock"
+                  orientation={mostrarDinero ? 'right' : 'left'}
+                  tickLine={false}
+                  axisLine={false}
+                  width={32}
+                  className="text-[10px]"
+                />
+              )}
+              <ChartTooltip
+                cursor={false}
+                content={
+                  <ChartTooltipContent
+                    formatter={(v, name) => (name === 'dinero' ? formatARS(Number(v)) : `${v} u.`)}
+                  />
+                }
+              />
+              {mostrarDinero && (
+                <Line
+                  yAxisId="dinero"
+                  dataKey="dinero"
+                  type="monotone"
+                  stroke="var(--color-dinero)"
+                  strokeWidth={2}
+                  dot={false}
+                />
+              )}
+              {mostrarStock && (
+                <Line
+                  yAxisId="stock"
+                  dataKey="stock"
+                  type="monotone"
+                  stroke="var(--color-stock)"
+                  strokeWidth={2}
+                  dot={false}
+                />
+              )}
+            </LineChart>
+          </ChartContainer>
+          {metricaFlujo === 'ambas' && (
+            <Leyenda
+              items={[
+                ['var(--chart-4)', 'Dinero (neto)'],
+                ['var(--chart-1)', 'Stock (unidades)'],
+              ]}
+            />
+          )}
+        </Panel>
+
+        <Panel titulo="Composición de la caja" subtitulo="De dónde viene la plata disponible">
+          <div className="flex items-center gap-2">
+            <ChartContainer config={cajaConfig} className="h-[170px] flex-1">
+              <PieChart>
+                <ChartTooltip
+                  content={<ChartTooltipContent nameKey="label" formatter={(v) => formatARS(Number(v))} />}
+                />
+                <Pie data={caja} dataKey="value" nameKey="label" innerRadius={44} strokeWidth={3}>
+                  {caja.map((d) => (
+                    <Cell key={d.medio} fill={d.fill} />
+                  ))}
+                </Pie>
+              </PieChart>
+            </ChartContainer>
+            <div className="flex flex-col gap-3 pr-1">
+              {caja.map((d) => (
+                <div key={d.medio} className="flex flex-col">
+                  <span className="flex items-center gap-1.5 text-[11.5px] text-muted-foreground">
+                    <span className="size-2 rounded-sm" style={{ background: d.fill }} />
+                    {d.label}
+                  </span>
+                  <span className="cifra text-[13.5px] font-semibold text-foreground">
+                    {formatARS(d.value)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </Panel>
+
+        <Panel titulo="Deuda en la calle" subtitulo="Quiénes te deben más">
+          {deudores.length === 0 ? (
+            <Vacio texto="No hay fiados pendientes. Todo cobrado." />
+          ) : (
+            <ChartContainer
+              config={deudaConfig}
+              className="w-full"
+              style={{ height: deudores.length * 40 + 16 }}
+            >
+              <BarChart accessibilityLayer data={deudores} layout="vertical" margin={{ left: 4, right: 56 }}>
+                <YAxis
+                  dataKey="nombre"
                   type="category"
                   tickLine={false}
                   axisLine={false}
-                  width={88}
+                  width={72}
                   className="text-[11px]"
                 />
                 <XAxis type="number" hide />
@@ -534,46 +437,141 @@ export function ResumenTab() {
                   cursor={false}
                   content={<ChartTooltipContent formatter={(v) => formatARS(Number(v))} />}
                 />
-                <Bar dataKey="valor" fill="var(--color-valor)" radius={5} />
+                <Bar dataKey="deuda" fill="var(--color-deuda)" radius={3} />
               </BarChart>
             </ChartContainer>
-            <p className="mt-2 text-center text-[11px] text-muted-foreground">
-              Total perdido: <span className="font-bold text-danger">{formatARS(totalMermaValor)}</span>
-            </p>
-          </>
-        )}
-      </Panel>
+          )}
+        </Panel>
+
+        <Panel
+          titulo="Lo más vendido"
+          subtitulo={`Productos que más facturaron ${
+            periodoVentas === 'dia' ? 'hoy' : periodoVentas === 'mes' ? 'este mes' : 'este año'
+          }`}
+          acciones={<Segmented value={periodoVentas} onChange={setPeriodoVentas} options={OPCIONES_PERIODO} />}
+        >
+          {productos.length === 0 ? (
+            <Vacio texto="Todavía no hay ventas con productos en este período." />
+          ) : (
+            <ChartContainer
+              config={prodConfig}
+              className="w-full"
+              style={{ height: productos.length * 40 + 16 }}
+            >
+              <BarChart accessibilityLayer data={productos} layout="vertical" margin={{ left: 4, right: 56 }}>
+                <YAxis
+                  dataKey="producto"
+                  type="category"
+                  tickLine={false}
+                  axisLine={false}
+                  width={96}
+                  className="text-[11px]"
+                  tickFormatter={(v: string) => (v.length > 14 ? v.slice(0, 13) + '…' : v)}
+                />
+                <XAxis type="number" hide />
+                <ChartTooltip
+                  cursor={false}
+                  content={<ChartTooltipContent formatter={(v) => formatARS(Number(v))} />}
+                />
+                <Bar dataKey="monto" fill="var(--color-monto)" radius={3} />
+              </BarChart>
+            </ChartContainer>
+          )}
+        </Panel>
+
+        <Panel titulo="Para reponer" subtitulo="Productos que se están agotando">
+          {alertasStock.length === 0 ? (
+            <Vacio texto="Ningún producto está bajo el mínimo. Bien surtido." />
+          ) : (
+            <ul className="flex flex-col">
+              {alertasStock.map((p) => {
+                const pct = Math.min(100, Math.round((p.stock / Math.max(1, p.stock_minimo)) * 100))
+                const critico = p.stock === 0
+                return (
+                  <li
+                    key={p.id}
+                    className="flex flex-col gap-1.5 border-b border-border/70 py-2.5 last:border-b-0"
+                  >
+                    <div className="flex items-baseline justify-between gap-3">
+                      <span className="truncate text-[13.5px] text-foreground">{p.nombre}</span>
+                      <span
+                        className={`cifra shrink-0 text-[12.5px] font-semibold ${
+                          critico ? 'text-danger' : 'text-fiado'
+                        }`}
+                      >
+                        {p.stock} {p.unidad}
+                      </span>
+                    </div>
+                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                      <div
+                        className={`h-full rounded-full ${critico ? 'bg-danger' : 'bg-fiado'}`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+        </Panel>
+
+        <Panel titulo="Mermas" subtitulo="Perdido por rotura, vencimiento u otros motivos">
+          {mermas.length === 0 ? (
+            <Vacio texto="No anotaste mermas de stock." />
+          ) : (
+            <>
+              <ChartContainer
+                config={mermaConfig}
+                className="w-full"
+                style={{ height: mermas.length * 40 + 16 }}
+              >
+                <BarChart accessibilityLayer data={mermas} layout="vertical" margin={{ left: 4, right: 56 }}>
+                  <YAxis
+                    dataKey="motivo"
+                    type="category"
+                    tickLine={false}
+                    axisLine={false}
+                    width={88}
+                    className="text-[11px]"
+                  />
+                  <XAxis type="number" hide />
+                  <ChartTooltip
+                    cursor={false}
+                    content={<ChartTooltipContent formatter={(v) => formatARS(Number(v))} />}
+                  />
+                  <Bar dataKey="valor" fill="var(--color-valor)" radius={3} />
+                </BarChart>
+              </ChartContainer>
+              <p className="mt-2 text-center text-[11.5px] text-muted-foreground">
+                Total perdido: <span className="cifra font-semibold text-danger">{formatARS(totalMermaValor)}</span>
+              </p>
+            </>
+          )}
+        </Panel>
       </div>
     </div>
   )
 }
 
 function Kpi({
-  icon: Icon,
   label,
   valor,
   tono,
 }: {
-  icon: LucideIcon
   label: string
   valor: string
   tono: 'success' | 'danger' | 'celeste' | 'fiado'
 }) {
-  const tonos: Record<typeof tono, string> = {
-    success: 'bg-success/12 text-success',
-    danger: 'bg-danger/12 text-danger',
-    celeste: 'bg-celeste/12 text-celeste',
-    fiado: 'bg-fiado/15 text-fiado',
-  }
+  const color = {
+    success: 'text-success',
+    danger: 'text-danger',
+    celeste: 'text-celeste',
+    fiado: 'text-fiado',
+  }[tono]
   return (
-    <div className="flex flex-col gap-2 rounded-3xl bg-card p-4 shadow-sm">
-      <span className={`flex size-8 items-center justify-center rounded-full ${tonos[tono]}`}>
-        <Icon className="size-4" />
-      </span>
-      <div>
-        <p className="text-[11px] font-medium text-muted-foreground">{label}</p>
-        <p className="text-lg font-extrabold tracking-tight text-foreground">{valor}</p>
-      </div>
+    <div className="rounded-lg border border-border bg-card p-3">
+      <p className="text-[11px] font-medium text-muted-foreground">{label}</p>
+      <p className={`cifra mt-0.5 text-[17px] font-semibold ${color}`}>{valor}</p>
     </div>
   )
 }
@@ -581,24 +579,24 @@ function Kpi({
 function Panel({
   titulo,
   subtitulo,
-  icon: Icon = TrendingUp,
+  acciones,
   children,
 }: {
   titulo: string
   subtitulo: string
-  icon?: LucideIcon
+  acciones?: React.ReactNode
   children: React.ReactNode
 }) {
   return (
-    <section className="rounded-3xl bg-card p-4 shadow-sm">
-      <div className="mb-3 flex items-center gap-1.5">
-        <Icon className="size-4 text-celeste" />
+    <section className="rounded-lg border border-border bg-card">
+      <div className="flex flex-wrap items-start justify-between gap-2 border-b border-border px-3.5 py-3">
         <div>
-          <h2 className="text-sm font-bold leading-tight text-foreground">{titulo}</h2>
-          <p className="text-[11px] text-muted-foreground">{subtitulo}</p>
+          <h2 className="text-[13px] font-semibold leading-tight text-foreground">{titulo}</h2>
+          <p className="text-[11.5px] text-muted-foreground">{subtitulo}</p>
         </div>
+        {acciones}
       </div>
-      {children}
+      <div className="px-3.5 py-3">{children}</div>
     </section>
   )
 }
@@ -608,7 +606,7 @@ function Leyenda({ items }: { items: [string, string][] }) {
     <div className="mt-2 flex items-center justify-center gap-4">
       {items.map(([color, label]) => (
         <span key={label} className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-          <span className="size-2.5 rounded-full" style={{ background: color }} />
+          <span className="size-2 rounded-sm" style={{ background: color }} />
           {label}
         </span>
       ))}
@@ -617,7 +615,7 @@ function Leyenda({ items }: { items: [string, string][] }) {
 }
 
 function Vacio({ texto }: { texto: string }) {
-  return <p className="py-6 text-center text-sm text-muted-foreground">{texto}</p>
+  return <p className="py-6 text-center text-[13px] text-muted-foreground">{texto}</p>
 }
 
 function Segmented<T extends string>({
@@ -630,15 +628,16 @@ function Segmented<T extends string>({
   options: { value: T; label: string }[]
 }) {
   return (
-    <div className="flex gap-0.5 rounded-full bg-muted p-1">
+    <div className="flex gap-0.5 rounded-md border border-border bg-background p-0.5">
       {options.map((o) => (
         <button
           key={o.value}
           type="button"
           onClick={() => onChange(o.value)}
-          className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors ${
+          aria-pressed={value === o.value}
+          className={`rounded-[4px] px-2 py-1 text-[11.5px] font-medium transition-colors ${
             value === o.value
-              ? 'bg-card text-foreground shadow-sm'
+              ? 'bg-primary text-primary-foreground'
               : 'text-muted-foreground hover:text-foreground'
           }`}
         >

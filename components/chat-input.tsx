@@ -28,7 +28,7 @@ export function ChatInput({
   }
 
   return (
-    <div className="flex items-center gap-2 rounded-2xl bg-card p-2 shadow-sm ring-1 ring-border">
+    <div className="flex items-end gap-2 rounded-lg border border-border bg-card pl-3 pr-2 py-2">
       <input
         ref={inputRef}
         value={texto}
@@ -43,17 +43,18 @@ export function ChatInput({
             enviar()
           }
         }}
-        placeholder="Escribí: Vendí 2 cocas en efectivo…"
-        className="min-w-0 flex-1 bg-transparent px-2 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
+        placeholder="Escribí lo que pasó: vendí 2 cocas en efectivo…"
+        aria-label="Escribir un movimiento"
+        className="min-w-0 flex-1 bg-transparent py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
       />
       <button
         type="button"
         onClick={enviar}
         disabled={!texto.trim()}
-        aria-label="Enviar"
-        className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-celeste text-celeste-foreground transition-opacity disabled:opacity-40"
+        aria-label="Anotar"
+        className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground transition-opacity hover:bg-primary/90 disabled:opacity-35"
       >
-        <Send className="size-5" />
+        <Send className="size-4" />
       </button>
     </div>
   )

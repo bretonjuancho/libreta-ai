@@ -159,24 +159,23 @@ export function VoiceRecorder({ onProcesar }: { onProcesar: (texto: string) => v
           onClick={empezar}
           disabled={sinSoporte}
           aria-label="Presioná para dictar"
-          className="group relative flex size-24 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform active:scale-95 disabled:opacity-40"
+          className="flex size-20 items-center justify-center rounded-full bg-primary text-primary-foreground transition-transform active:scale-95 disabled:opacity-35"
         >
-          <span className="absolute inset-0 rounded-full bg-primary/20 blur-md" aria-hidden />
-          <Mic className="size-10" />
+          <Mic className="size-8" strokeWidth={1.8} />
         </button>
         <div className="text-center">
-          <p className="text-sm font-semibold text-foreground">Presioná para dictar</p>
-          <p className="mt-0.5 text-xs text-muted-foreground text-pretty">
+          <p className="text-[13px] font-semibold text-foreground">Presioná para dictar</p>
+          <p className="mt-0.5 text-[11.5px] text-muted-foreground text-pretty">
             &ldquo;Anotale 2 cocas y fideos al Tano&rdquo;
           </p>
           {error ? (
-            <p className="mx-auto mt-1.5 flex max-w-60 items-start justify-center gap-1 text-[11px] font-medium text-danger text-pretty">
+            <p className="mx-auto mt-1.5 flex max-w-60 items-start justify-center gap-1 text-[11.5px] font-medium text-danger text-pretty">
               <TriangleAlert className="mt-px size-3.5 shrink-0" />
               {error}
             </p>
           ) : (
             sinSoporte && (
-              <p className="mx-auto mt-1.5 max-w-60 text-[11px] text-muted-foreground text-pretty">
+              <p className="mx-auto mt-1.5 max-w-60 text-[11.5px] text-muted-foreground text-pretty">
                 {!contextoSeguro
                   ? 'Estás en HTTP: el micrófono no está disponible. Entrá por HTTPS o escribí abajo.'
                   : 'Este navegador no soporta dictado por voz. Escribí el movimiento abajo.'}
@@ -189,8 +188,8 @@ export function VoiceRecorder({ onProcesar }: { onProcesar: (texto: string) => v
   }
 
   return (
-    <div className="flex flex-col items-center gap-4 rounded-2xl bg-primary p-5 text-primary-foreground shadow-lg">
-      <div className="flex items-center gap-2 text-sm font-semibold">
+    <div className="flex flex-col items-center gap-4 rounded-md bg-primary p-5 text-primary-foreground">
+      <div className="flex items-center gap-2 text-[13px] font-semibold">
         <span className="relative flex size-2.5">
           <span className="absolute inline-flex size-full animate-ping rounded-full bg-danger opacity-75" />
           <span className="relative inline-flex size-2.5 rounded-full bg-danger" />
@@ -202,7 +201,7 @@ export function VoiceRecorder({ onProcesar }: { onProcesar: (texto: string) => v
         {Array.from({ length: 18 }).map((_, i) => (
           <span
             key={i}
-            className="w-1.5 origin-bottom rounded-full bg-celeste animate-wave"
+            className="animate-wave w-1.5 origin-bottom rounded-full bg-celeste"
             style={{
               height: `${16 + ((i * 7) % 32)}px`,
               animationDelay: `${(i % 6) * 0.09}s`,
@@ -211,12 +210,16 @@ export function VoiceRecorder({ onProcesar }: { onProcesar: (texto: string) => v
         ))}
       </div>
 
-      <p className="min-h-10 w-full text-center text-sm leading-relaxed text-pretty">
+      <p
+        aria-live="polite"
+        className="min-h-10 w-full text-center text-sm leading-relaxed text-pretty"
+      >
         {transcripcion ? `"${transcripcion}"` : 'Empezá a hablar…'}
       </p>
+
       {error && (
-        <p className="flex items-start justify-center gap-1.5 text-center text-xs font-medium text-primary-foreground text-pretty">
-          <TriangleAlert className="mt-px size-4 shrink-0" />
+        <p className="flex items-start justify-center gap-1.5 rounded-md bg-card px-2.5 py-1.5 text-center text-[11.5px] font-medium text-danger text-pretty">
+          <TriangleAlert className="mt-px size-3.5 shrink-0" />
           {error}
         </p>
       )}
@@ -224,17 +227,18 @@ export function VoiceRecorder({ onProcesar }: { onProcesar: (texto: string) => v
       <div className="flex w-full gap-2">
         <Button
           onClick={cancelar}
-          className="h-11 flex-1 rounded-xl bg-primary-foreground/15 text-primary-foreground hover:bg-primary-foreground/25"
+          variant="outline"
+          className="h-11 flex-1 rounded-md border-primary-foreground/25 bg-transparent text-[13px] font-medium text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground"
         >
           <X className="size-4" />
           Cancelar
         </Button>
         <Button
           onClick={terminar}
-          className="h-11 flex-1 rounded-xl bg-danger text-danger-foreground hover:bg-danger/90"
+          className="h-11 flex-1 rounded-md bg-danger text-[13px] font-semibold text-danger-foreground hover:bg-danger/90"
         >
-          <Square className="size-4 fill-current" />
-          Terminar y procesar
+          <Square className="size-3.5 fill-current" />
+          Terminar y anotar
         </Button>
       </div>
     </div>

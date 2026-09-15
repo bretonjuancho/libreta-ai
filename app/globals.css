@@ -38,55 +38,64 @@
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
 
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
+  --radius-sm: calc(var(--radius) * 0.5);
+  --radius-md: calc(var(--radius) * 0.75);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) * 1.4);
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
 
-  --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-chivo-mono), ui-monospace, 'Courier New', monospace;
 }
 
 :root {
   color-scheme: light;
-  --radius: 0.875rem;
+  /* Radio corto: papel cortado, no tarjeta inflada */
+  --radius: 0.375rem;
 
-  --background: #f8f7f4;
+  /* Papel de escritorio y hoja */
+  --background: #f2f5f7;
   --foreground: #0f2a44;
   --card: #ffffff;
   --card-foreground: #0f2a44;
   --popover: #ffffff;
   --popover-foreground: #0f2a44;
 
+  /* Tinta */
   --primary: #0f2a44;
   --primary-foreground: #ffffff;
-  --secondary: #eef1f4;
+  --secondary: #e7edf2;
   --secondary-foreground: #0f2a44;
-  --muted: #f0eee9;
-  --muted-foreground: #6b7280;
-  --accent: #e8f3fb;
+  --muted: #ecf1f5;
+  --muted-foreground: #4f6477;
+  --accent: #e3eff8;
   --accent-foreground: #0f2a44;
-  --destructive: #ef4444;
+  --destructive: #c0392b;
   --destructive-foreground: #ffffff;
-  --border: #e7e4dd;
-  --input: #e7e4dd;
-  --ring: #4aa8e0;
+  /* Regla del renglón */
+  --border: #cfdde8;
+  --input: #cfdde8;
+  --ring: #1d6fa8;
 
-  --celeste: #4aa8e0;
+  /* Lapicera celeste: información, transferencias, enlaces */
+  --celeste: #1d6fa8;
   --celeste-foreground: #ffffff;
-  --success: #22c55e;
+  /* Sello verde: entra plata o mercadería */
+  --success: #1b7a4b;
   --success-foreground: #ffffff;
-  --danger: #ef4444;
+  /* Lapicera roja: sale plata o mercadería */
+  --danger: #c0392b;
   --danger-foreground: #ffffff;
-  --fiado: #f59e0b;
+  /* Ámbar de libreta: queda pendiente / fiado */
+  --fiado: #8a5f10;
   --fiado-foreground: #ffffff;
 
-  --chart-1: #4aa8e0;
-  --chart-2: #22c55e;
-  --chart-3: #f59e0b;
+  --chart-1: #1d6fa8;
+  --chart-2: #1b7a4b;
+  --chart-3: #9a6b12;
   --chart-4: #0f2a44;
-  --chart-5: #ef4444;
+  --chart-5: #c0392b;
 }
 
 @layer base {
@@ -96,6 +105,30 @@
   body {
     @apply bg-background text-foreground;
   }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+}
+
+/* Columna de cifras: monoespaciada y tabular, para que los montos
+   queden alineados como en la libreta. */
+@utility cifra {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+/* Línea perforada, como el borde de un recibo. */
+@utility perforado {
+  background-image: repeating-linear-gradient(
+    to right,
+    var(--border) 0 6px,
+    transparent 6px 12px
+  );
+  background-size: 100% 1px;
+  background-repeat: no-repeat;
+  background-position: center;
 }
 
 @keyframes wave {
@@ -110,4 +143,54 @@
 
 .animate-wave {
   animation: wave 0.9s ease-in-out infinite;
+}
+
+/* El sello cae sobre el recibo */
+@keyframes sello {
+  0% {
+    opacity: 0;
+    transform: rotate(-14deg) scale(1.6);
+  }
+  60% {
+    opacity: 1;
+    transform: rotate(-7deg) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: rotate(-7deg) scale(1);
+  }
+}
+
+.animate-sello {
+  animation: sello 0.32s cubic-bezier(0.2, 0.9, 0.3, 1) both;
+}
+
+/* El recibo se apoya en el mostrador */
+@keyframes recibo {
+  0% {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-recibo {
+  animation: recibo 0.22s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .animate-sello,
+  .animate-recibo {
+    animation: none;
+  }
 }

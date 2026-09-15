@@ -1,6 +1,6 @@
 'use client'
 
-import { ChevronRight, Lightbulb } from 'lucide-react'
+import { ChevronRight } from 'lucide-react'
 import { useStore } from '@/lib/store'
 import { PERFIL } from '@/lib/mock-data'
 import { MiniCards } from '../mini-cards'
@@ -25,41 +25,42 @@ export function InicioTab({
 }) {
   const { estado } = useStore()
   const ultimos = estado.historial.slice(0, 3)
+  const hoy = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })
 
   return (
     <div className="flex flex-col gap-5 p-4 pb-4 sm:p-6">
-      <header className="flex items-start justify-between">
+      <header className="flex items-start justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-extrabold tracking-tight text-foreground">LibretaAI</h1>
-            <span className="rounded-full bg-fiado/15 px-2 py-0.5 text-[10px] font-bold tracking-wide text-fiado">
-              DEMO
-            </span>
-          </div>
-          <p className="text-sm text-muted-foreground">El boliche en orden · {PERFIL.nombre}</p>
+          <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-foreground">
+            {PERFIL.nombre}
+          </h1>
+          <p className="text-[13px] text-muted-foreground">
+            LibretaAI <span className="text-border">|</span> demo con datos de ejemplo
+          </p>
         </div>
+        <span className="cifra mt-1 shrink-0 text-[12px] text-muted-foreground">{hoy}</span>
       </header>
 
       <MiniCards />
 
-      <div className="rounded-3xl bg-card p-4 shadow-sm">
+      <div className="rounded-lg border border-border bg-card p-4">
         <VoiceRecorder onProcesar={onProcesar} />
       </div>
 
       <ChatInput onProcesar={onProcesar} prefill={prefill} />
 
       <section>
-        <div className="mb-2 flex items-center gap-1.5">
-          <Lightbulb className="size-4 text-fiado" />
-          <h2 className="text-sm font-bold text-foreground">¿Qué podés decirle?</h2>
+        <div className="mb-1 flex items-baseline justify-between gap-3">
+          <h2 className="text-[13px] font-semibold text-foreground">Ejemplos para dictar</h2>
+          <span className="text-[11px] text-muted-foreground">Tocalos y se cargan</span>
         </div>
-        <div className="grid gap-2 sm:grid-cols-3">
+        <div className="rounded-lg border border-border bg-card px-3">
           {EJEMPLOS.map((ej) => (
             <button
               key={ej}
               type="button"
               onClick={() => onProcesar(ej)}
-              className="flex items-center justify-between gap-2 rounded-2xl bg-card px-4 py-3 text-left text-sm text-foreground shadow-sm ring-1 ring-border transition-colors hover:bg-accent"
+              className="flex w-full items-center justify-between gap-3 border-b border-border/70 py-2.5 text-left text-[13.5px] text-foreground last:border-b-0 hover:text-celeste"
             >
               <span className="text-pretty">&ldquo;{ej}&rdquo;</span>
               <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
@@ -69,21 +70,27 @@ export function InicioTab({
       </section>
 
       <section>
-        <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-sm font-bold text-foreground">Últimos movimientos</h2>
+        <div className="mb-1 flex items-baseline justify-between gap-3">
+          <h2 className="text-[13px] font-semibold text-foreground">Últimos movimientos</h2>
           <button
             type="button"
             onClick={onVerHistorial}
-            className="text-xs font-semibold text-celeste"
+            className="text-[12px] font-medium text-celeste hover:underline"
           >
             Ver todos
           </button>
         </div>
-        <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
-          {ultimos.map((op) => (
-            <MovimientoItem key={op.id} op={op} />
-          ))}
-        </div>
+        {ultimos.length === 0 ? (
+          <p className="rounded-lg border border-border bg-card py-6 text-center text-[13px] text-muted-foreground">
+            Todavía no hay movimientos. Dictá el primero arriba.
+          </p>
+        ) : (
+          <div className="rounded-lg border border-border bg-card px-3">
+            {ultimos.map((op) => (
+              <MovimientoItem key={op.id} op={op} />
+            ))}
+          </div>
+        )}
       </section>
     </div>
   )
