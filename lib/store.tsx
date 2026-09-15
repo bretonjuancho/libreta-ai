@@ -21,6 +21,31 @@ interface StoreCtx {
   reset: () => void
 }
 
+function esEstadoValido(v: unknown): v is EstadoApp {
+  if (typeof v !== 'object' || v === null) return false
+  const e = v as Record<string, unknown>
+  return (
+    typeof e.caja === 'object' &&
+    e.caja !== null &&
+    Array.isArray(e.productos) &&
+    Array.isArray(e.clientes) &&
+    Array.isArray(e.historial)
+  )
+}
+
+function cargarEstado(): EstadoApp {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (raw) {
+      const parsed: unknown = JSON.parse(raw)
+      if (esEstadoValido(parsed)) return parsed
+    }
+  } catch {
+    // ignorar y usar el inicial
+  }
+  return getEstadoInicial()
+}
+
 const Ctx = createContext<StoreCtx | null>(null)
 
 function slug(nombre: string): string {
@@ -146,16 +171,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [estado, setEstado] = useState<EstadoApp | null>(null)
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY)
-      if (raw) {
-        setEstado(JSON.parse(raw) as EstadoApp)
-        return
-      }
-    } catch {
-      // ignorar
-    }
-    setEstado(getEstadoInicial())
+    setEstado(cargarEstado())
   }, [])
 
   useEffect(() => {

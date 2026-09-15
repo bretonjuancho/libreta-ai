@@ -57,6 +57,27 @@ function normalizar(texto: string): string {
   return texto.toLowerCase().trim()
 }
 
+function escaparRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+// \b no sirve acá: no considera vocales acentuadas ni la ñ como letras
+// (ej. el alias "ñoquis" jamás matchearía). Bordes "palabra" inclusive.
+function regexPalabra(alias: string): RegExp {
+  return new RegExp(`(?<![a-záéíóúñ0-9])${escaparRegex(alias)}(?![a-záéíóúñ0-9])`, 'i')
+}
+
+function nuevoId(): string {
+  try {
+    if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+      return crypto.randomUUID()
+    }
+  } catch {
+    // cae al fallback de abajo
+  }
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
+}
+
 const CONECTORES_MENORES = new Set(['de', 'del', 'la', 'el', 'los', 'las', 'en', 'y'])
 
 function capitalizarNombreProducto(nombre: string): string {
@@ -187,8 +208,7 @@ function extraerItems(texto: string, productos?: Producto[]): Item[] {
   for (const entry of CATALOGO) {
     if (vistos.has(entry.nombre)) continue
     for (const alias of entry.alias) {
-      const re = new RegExp(`\\b${alias}\\b`, 'i')
-      const m = texto.match(re)
+      const m = texto.match(regexPalabra(alias))
       if (m && m.index !== undefined) {
         vistos.add(entry.nombre)
         matches.push({ entry, index: m.index, length: m[0].length })
@@ -394,7 +414,7 @@ export function parsearMensaje(texto: string, productos?: Producto[]): Operacion
   }
 
   return {
-    id: crypto.randomUUID(),
+    id: nuevoId(),
     tipo_operacion: tipo,
     cliente: tipo === 'NUEVO_DEUDA' || tipo === 'PAGO_DEUDA' ? cliente : null,
     medio_pago,

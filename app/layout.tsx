@@ -12,7 +12,6 @@ export const metadata: Metadata = {
   title: 'LibretaAI — El boliche en orden',
   description:
     'Asistente de stock, caja y fiados para el almacén de barrio. Actualizá todo hablando o escribiendo.',
-  generator: 'v0.app',
 }
 
 export const viewport: Viewport = {

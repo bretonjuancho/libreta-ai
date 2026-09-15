@@ -1,12 +1,14 @@
 {
-  "name": "my-project",
+  "name": "libreta-ai",
   "version": "0.1.0",
+  "description": "Asistente de stock, caja y fiados para el almacén de barrio.",
   "private": true,
   "packageManager": "pnpm@12.3.4",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",

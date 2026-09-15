@@ -16,8 +16,19 @@ const productos: Producto[] = [
   { id: 'galletitas', nombre: 'Galletitas', stock: 12, stock_minimo: 6, precio: 1200, unidad: 'u' },
 ]
 
+function nuevoId(): string {
+  try {
+    if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+      return crypto.randomUUID()
+    }
+  } catch {
+    // cae al fallback de abajo
+  }
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
+}
+
 function op(o: Omit<Operacion, 'id'>): Operacion {
-  return { id: crypto.randomUUID(), ...o }
+  return { id: nuevoId(), ...o }
 }
 
 // Timestamps fijos para el historial de demo (hoy).
@@ -29,45 +40,17 @@ function hora(h: number, m: number): string {
 }
 
 const historial: Operacion[] = [
-  op({
-    tipo_operacion: 'GASTO_OPERATIVO',
-    cliente: null,
-    medio_pago: 'EFECTIVO',
-    monto_total: 15000,
-    motivo_salida: null,
-    items: [],
-    texto_original: 'Gasto - Boleta de luz $15000',
-    fecha: hora(9, 12),
-  }),
-  op({
-    tipo_operacion: 'INGRESO_STOCK',
-    cliente: null,
-    medio_pago: null,
-    monto_total: 0,
-    motivo_salida: null,
-    items: [{ producto: 'Yerba Playadito 1kg', cantidad: 20, precio_unitario: 5200 }],
-    texto_original: 'Ingreso de stock - Yerba 20u',
-    fecha: hora(10, 5),
-  }),
+  // Orden: más reciente primero (coincide con aplicar(), que antepone cada
+  // operación confirmada, y con los "Últimos movimientos" del inicio).
   op({
     tipo_operacion: 'VENTA_CONTADO',
     cliente: null,
-    medio_pago: 'EFECTIVO',
-    monto_total: 7200,
+    medio_pago: 'TRANSFERENCIA',
+    monto_total: 3400,
     motivo_salida: null,
-    items: [{ producto: 'Atún', cantidad: 3, precio_unitario: 2400 }],
-    texto_original: 'Venta contado 3 latas de atún $7200',
-    fecha: hora(11, 30),
-  }),
-  op({
-    tipo_operacion: 'PAGO_DEUDA',
-    cliente: 'Marta',
-    medio_pago: 'EFECTIVO',
-    monto_total: 3000,
-    motivo_salida: null,
-    items: [],
-    texto_original: 'Marta me pagó $3000 de su deuda',
-    fecha: hora(12, 15),
+    items: [{ producto: 'Galletitas', cantidad: 2, precio_unitario: 1200 }],
+    texto_original: 'Venta contado $3400 por transferencia',
+    fecha: hora(14, 20),
   }),
   op({
     tipo_operacion: 'NUEVO_DEUDA',
@@ -80,14 +63,44 @@ const historial: Operacion[] = [
     fecha: hora(13, 40),
   }),
   op({
+    tipo_operacion: 'PAGO_DEUDA',
+    cliente: 'Marta',
+    medio_pago: 'EFECTIVO',
+    monto_total: 3000,
+    motivo_salida: null,
+    items: [],
+    texto_original: 'Marta me pagó $3000 de su deuda',
+    fecha: hora(12, 15),
+  }),
+  op({
     tipo_operacion: 'VENTA_CONTADO',
     cliente: null,
-    medio_pago: 'TRANSFERENCIA',
-    monto_total: 3400,
+    medio_pago: 'EFECTIVO',
+    monto_total: 7200,
     motivo_salida: null,
-    items: [{ producto: 'Galletitas', cantidad: 2, precio_unitario: 1200 }],
-    texto_original: 'Venta contado $3400 por transferencia',
-    fecha: hora(14, 20),
+    items: [{ producto: 'Atún', cantidad: 3, precio_unitario: 2400 }],
+    texto_original: 'Venta contado 3 latas de atún $7200',
+    fecha: hora(11, 30),
+  }),
+  op({
+    tipo_operacion: 'INGRESO_STOCK',
+    cliente: null,
+    medio_pago: null,
+    monto_total: 0,
+    motivo_salida: null,
+    items: [{ producto: 'Yerba Playadito 1kg', cantidad: 20, precio_unitario: 5200 }],
+    texto_original: 'Ingreso de stock - Yerba 20u',
+    fecha: hora(10, 5),
+  }),
+  op({
+    tipo_operacion: 'GASTO_OPERATIVO',
+    cliente: null,
+    medio_pago: 'EFECTIVO',
+    monto_total: 15000,
+    motivo_salida: null,
+    items: [],
+    texto_original: 'Gasto - Boleta de luz $15000',
+    fecha: hora(9, 12),
   }),
 ]
 
@@ -119,10 +132,15 @@ const clientes: Cliente[] = [
 ]
 
 export function getEstadoInicial(): EstadoApp {
-  return {
-    caja: { total: 128500, efectivo: 42900, transferencia: 85600 },
-    productos,
-    clientes,
-    historial,
-  }
+  // Clon profundo: evita que resets o consumidores distintos compartan las
+  // mismas referencias a objetos del módulo.
+  const clonado: EstadoApp = JSON.parse(
+    JSON.stringify({
+      caja: { total: 128500, efectivo: 42900, transferencia: 85600 },
+      productos,
+      clientes,
+      historial,
+    }),
+  )
+  return clonado
 }

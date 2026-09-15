@@ -1,6 +1,6 @@
 'use client'
 
-import { BarChart3, BookUser, Boxes, Home, type LucideIcon } from 'lucide-react'
+import { BarChart3, BookUser, Boxes, History, Home, type LucideIcon } from 'lucide-react'
 
 export type Tab = 'inicio' | 'resumen' | 'stock' | 'historial' | 'clientes'
 
@@ -8,6 +8,7 @@ const ITEMS: { tab: Tab; label: string; icon: LucideIcon }[] = [
   { tab: 'inicio', label: 'Inicio', icon: Home },
   { tab: 'resumen', label: 'Resumen', icon: BarChart3 },
   { tab: 'stock', label: 'Stock', icon: Boxes },
+  { tab: 'historial', label: 'Historial', icon: History },
   { tab: 'clientes', label: 'Fiados', icon: BookUser },
 ]
 

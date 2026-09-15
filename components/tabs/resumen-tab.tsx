@@ -61,6 +61,10 @@ function estaEnPeriodo(fechaISO: string, periodo: Periodo, ahora: Date): boolean
   return d.getFullYear() === ahora.getFullYear()
 }
 
+function esHoy(fechaISO: string, ahora: Date): boolean {
+  return estaEnPeriodo(fechaISO, 'dia', ahora)
+}
+
 function deltaDinero(op: Operacion): number {
   if (op.tipo_operacion === 'VENTA_CONTADO' || op.tipo_operacion === 'PAGO_DEUDA') return op.monto_total
   if (op.tipo_operacion === 'GASTO_OPERATIVO') return -op.monto_total
@@ -113,19 +117,21 @@ export function ResumenTab() {
     let ingresos = 0
     let egresos = 0
     for (const op of estado.historial) {
+      if (!esHoy(op.fecha, ahora)) continue
       if (op.tipo_operacion === 'VENTA_CONTADO' || op.tipo_operacion === 'PAGO_DEUDA')
         ingresos += op.monto_total
       if (op.tipo_operacion === 'GASTO_OPERATIVO') egresos += op.monto_total
     }
     const deuda = estado.clientes.reduce((s, c) => s + c.saldo_deuda, 0)
     return { ingresos, egresos, balance: ingresos - egresos, deuda }
-  }, [estado])
+  }, [estado, ahora])
 
   const flujo = useMemo(() => {
     return FRANJAS.map((f) => {
       let ingresos = 0
       let egresos = 0
       for (const op of estado.historial) {
+        if (!esHoy(op.fecha, ahora)) continue
         const h = new Date(op.fecha).getHours()
         const hh = h < 6 ? h + 24 : h
         if (hh < f.desde || hh >= f.hasta) continue
@@ -135,7 +141,7 @@ export function ResumenTab() {
       }
       return { franja: f.label, ingresos, egresos }
     })
-  }, [estado])
+  }, [estado, ahora])
 
   const caja = useMemo(
     () => [
@@ -176,10 +182,12 @@ export function ResumenTab() {
   }, [estado, periodoVentas, ahora])
 
   const ticketPromedio = useMemo(() => {
-    const ventas = estado.historial.filter((op) => op.tipo_operacion === 'VENTA_CONTADO')
+    const ventas = estado.historial.filter(
+      (op) => op.tipo_operacion === 'VENTA_CONTADO' && esHoy(op.fecha, ahora),
+    )
     if (ventas.length === 0) return 0
     return Math.round(ventas.reduce((s, op) => s + op.monto_total, 0) / ventas.length)
-  }, [estado])
+  }, [estado, ahora])
 
   const buckets = useMemo(() => {
     if (periodoFlujo === 'dia')
@@ -259,7 +267,7 @@ export function ResumenTab() {
       </section>
 
       <section className="grid grid-cols-2 gap-3">
-        <Kpi icon={Receipt} tono="celeste" label="Ticket promedio" valor={formatARS(ticketPromedio)} />
+        <Kpi icon={Receipt} tono="celeste" label="Ticket promedio hoy" valor={formatARS(ticketPromedio)} />
         <Kpi
           icon={AlertTriangle}
           tono={alertasStock.length > 0 ? 'danger' : 'success'}
