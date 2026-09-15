@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Mic, Square, TriangleAlert, X } from 'lucide-react'
+import { AudioLines, Mic, Square, TriangleAlert, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 // Tipos mínimos para la Web Speech API (no siempre presentes en lib.dom).
@@ -159,12 +159,19 @@ export function VoiceRecorder({ onProcesar }: { onProcesar: (texto: string) => v
           onClick={empezar}
           disabled={sinSoporte}
           aria-label="Presioná para dictar"
-          className="flex size-20 items-center justify-center rounded-full bg-primary text-primary-foreground transition-transform active:scale-95 disabled:opacity-35"
+          className="relative flex size-20 items-center justify-center rounded-full bg-linear-to-br from-celeste to-primary text-primary-foreground shadow-lg shadow-celeste/25 transition-transform active:scale-95 disabled:opacity-35 disabled:shadow-none"
         >
+          <span
+            className="absolute inset-0 rounded-full ring-4 ring-celeste/15"
+            aria-hidden
+          />
           <Mic className="size-8" strokeWidth={1.8} />
         </button>
         <div className="text-center">
-          <p className="text-[13px] font-semibold text-foreground">Presioná para dictar</p>
+          <p className="flex items-center justify-center gap-1.5 text-[13px] font-semibold text-foreground">
+            <AudioLines className="size-4 text-celeste" strokeWidth={2} />
+            Presioná para dictar
+          </p>
           <p className="mt-0.5 text-[11.5px] text-muted-foreground text-pretty">
             &ldquo;Anotale 2 cocas y fideos al Tano&rdquo;
           </p>
@@ -188,7 +195,7 @@ export function VoiceRecorder({ onProcesar }: { onProcesar: (texto: string) => v
   }
 
   return (
-    <div className="flex flex-col items-center gap-4 rounded-md bg-primary p-5 text-primary-foreground">
+    <div className="flex flex-col items-center gap-4 rounded-lg bg-linear-to-br from-primary to-celeste p-5 text-primary-foreground">
       <div className="flex items-center gap-2 text-[13px] font-semibold">
         <span className="relative flex size-2.5">
           <span className="absolute inline-flex size-full animate-ping rounded-full bg-danger opacity-75" />

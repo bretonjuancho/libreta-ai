@@ -1,7 +1,14 @@
 'use client'
 
 import { useMemo } from 'react'
-import { ArrowLeft, CalendarClock, HandCoins, NotebookPen } from 'lucide-react'
+import {
+  ArrowLeft,
+  ArrowDownLeft,
+  ArrowUpRight,
+  CalendarClock,
+  HandCoins,
+  NotebookPen,
+} from 'lucide-react'
 import type { Cliente, Operacion } from '@/lib/types'
 import { formatARS, formatFechaHora } from '@/lib/format'
 import { ETIQUETAS_TIPO } from '@/lib/parser'
@@ -33,6 +40,8 @@ export function ClienteFicha({
     return out
   }, [cliente])
 
+  const alDia = cliente.saldo_deuda === 0
+
   return (
     <div className="flex flex-col gap-4 p-4 sm:p-6">
       <button
@@ -44,12 +53,35 @@ export function ClienteFicha({
         Volver a fiados
       </button>
 
-      <div className="rounded-lg border border-border bg-card p-4">
-        <p className="text-[12px] font-medium text-muted-foreground">Debe</p>
-        <h1 className="text-[22px] font-semibold leading-tight tracking-tight text-foreground">
-          {cliente.nombre}
-        </h1>
-        <p className="cifra mt-2 text-[32px] font-semibold leading-none text-fiado">
+      <div className="rounded-xl border border-fiado/25 bg-linear-to-br from-fiado/10 to-card p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-fiado/12 text-[15px] font-semibold text-fiado">
+              {cliente.nombre.charAt(0)}
+            </span>
+            <div className="min-w-0">
+              <p className="text-[12px] font-medium text-muted-foreground">
+                {alDia ? 'Sin deuda' : 'Debe'}
+              </p>
+              <h1 className="truncate text-[22px] font-semibold leading-tight tracking-tight text-foreground">
+                {cliente.nombre}
+              </h1>
+            </div>
+          </div>
+          <span
+            className={`flex size-10 shrink-0 items-center justify-center rounded-xl ${
+              alDia ? 'bg-success/12 text-success' : 'bg-fiado/12 text-fiado'
+            }`}
+          >
+            <HandCoins className="size-5" />
+          </span>
+        </div>
+
+        <p
+          className={`cifra mt-3 text-[32px] font-semibold leading-none ${
+            alDia ? 'text-success' : 'text-fiado'
+          }`}
+        >
           {formatARS(cliente.saldo_deuda)}
         </p>
         <div className="mt-3 flex items-center gap-1.5 text-[12px] text-muted-foreground">
@@ -88,24 +120,37 @@ export function ClienteFicha({
             {filas.map(({ op, saldo }) => {
               const esFiado = op.tipo_operacion === 'NUEVO_DEUDA'
               const detalle = op.items.map((it) => `${it.cantidad}× ${it.producto}`).join(', ')
+              const Icon = esFiado ? NotebookPen : HandCoins
               return (
                 <div
                   key={op.id}
-                  className="flex items-start justify-between gap-4 border-b border-border/70 py-2.5 last:border-b-0"
+                  className="flex items-center gap-2.5 border-b border-border/70 py-2.5 last:border-b-0"
                 >
-                  <div className="min-w-0">
-                    <p className="truncate text-[13.5px] text-foreground">
+                  <span
+                    className={`flex size-8 shrink-0 items-center justify-center rounded-lg ${
+                      esFiado ? 'bg-fiado/12 text-fiado' : 'bg-success/12 text-success'
+                    }`}
+                  >
+                    <Icon className="size-3.5" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[13.5px] font-medium text-foreground">
                       {detalle || ETIQUETAS_TIPO[op.tipo_operacion]}
                     </p>
                     <p className="cifra text-[11px] text-muted-foreground">
-                      {formatFechaHora(op.fecha)} (saldo {formatARS(saldo)})
+                      {formatFechaHora(op.fecha)} · saldo {formatARS(saldo)}
                     </p>
                   </div>
                   <span
-                    className={`cifra shrink-0 text-[13.5px] font-semibold ${
-                      esFiado ? 'text-fiado' : 'text-success'
+                    className={`cifra flex shrink-0 items-center gap-0.5 rounded-md px-2 py-1 text-[12.5px] font-semibold ${
+                      esFiado ? 'bg-fiado/10 text-fiado' : 'bg-success/10 text-success'
                     }`}
                   >
+                    {esFiado ? (
+                      <ArrowUpRight className="size-3.5" />
+                    ) : (
+                      <ArrowDownLeft className="size-3.5" />
+                    )}
                     {esFiado ? '+' : '−'}
                     {formatARS(op.monto_total)}
                   </span>

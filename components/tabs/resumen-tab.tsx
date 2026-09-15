@@ -2,6 +2,21 @@
 
 import { useMemo, useState } from 'react'
 import {
+  Activity,
+  BarChart3,
+  BookUser,
+  HandCoins,
+  PackageSearch,
+  ReceiptText,
+  Scale,
+  ShoppingCart,
+  Trash2,
+  TrendingDown,
+  TrendingUp,
+  Wallet,
+  type LucideIcon,
+} from 'lucide-react'
+import {
   Bar,
   BarChart,
   Cell,
@@ -255,24 +270,30 @@ export function ResumenTab() {
       </header>
 
       <section className="grid grid-cols-2 gap-2.5 md:grid-cols-3 xl:grid-cols-6">
-        <Kpi tono="success" label="Ingresos hoy" valor={formatARS(kpis.ingresos)} />
-        <Kpi tono="danger" label="Egresos hoy" valor={formatARS(kpis.egresos)} />
+        <Kpi tono="success" label="Ingresos hoy" valor={formatARS(kpis.ingresos)} icon={TrendingUp} />
+        <Kpi tono="danger" label="Egresos hoy" valor={formatARS(kpis.egresos)} icon={TrendingDown} />
         <Kpi
           tono={kpis.balance >= 0 ? 'celeste' : 'danger'}
           label="Balance del día"
           valor={formatARS(kpis.balance)}
+          icon={Scale}
         />
-        <Kpi tono="fiado" label="En la calle" valor={formatARS(kpis.deuda)} />
-        <Kpi tono="celeste" label="Ticket promedio" valor={formatARS(ticketPromedio)} />
+        <Kpi tono="fiado" label="En la calle" valor={formatARS(kpis.deuda)} icon={HandCoins} />
+        <Kpi tono="violeta" label="Ticket promedio" valor={formatARS(ticketPromedio)} icon={ReceiptText} />
         <Kpi
           tono={alertasStock.length > 0 ? 'danger' : 'success'}
           label="Para reponer"
           valor={`${alertasStock.length} ${alertasStock.length === 1 ? 'producto' : 'productos'}`}
+          icon={PackageSearch}
         />
       </section>
 
       <div className="grid items-start gap-4 xl:grid-cols-2">
-        <Panel titulo="Flujo del día" subtitulo="Ingresos y egresos por franja horaria">
+        <Panel
+          titulo="Flujo del día"
+          subtitulo="Ingresos y egresos por franja horaria"
+          icon={BarChart3}
+        >
           <ChartContainer config={flujoConfig} className="h-[190px] w-full">
             <BarChart accessibilityLayer data={flujo} margin={{ left: -8, right: 8, top: 8 }}>
               <XAxis
@@ -309,6 +330,8 @@ export function ResumenTab() {
                 ? 'de este mes, por día'
                 : 'de este año, por mes'
           }`}
+          icon={Activity}
+          tono="violeta"
           acciones={<Segmented value={periodoFlujo} onChange={setPeriodoFlujo} options={OPCIONES_PERIODO} />}
         >
           <div className="mb-3">
@@ -384,7 +407,12 @@ export function ResumenTab() {
           )}
         </Panel>
 
-        <Panel titulo="Composición de la caja" subtitulo="De dónde viene la plata disponible">
+        <Panel
+          titulo="Composición de la caja"
+          subtitulo="De dónde viene la plata disponible"
+          icon={Wallet}
+          tono="success"
+        >
           <div className="flex items-center gap-2">
             <ChartContainer config={cajaConfig} className="h-[170px] flex-1">
               <PieChart>
@@ -414,9 +442,14 @@ export function ResumenTab() {
           </div>
         </Panel>
 
-        <Panel titulo="Deuda en la calle" subtitulo="Quiénes te deben más">
+        <Panel
+          titulo="Deuda en la calle"
+          subtitulo="Quiénes te deben más"
+          icon={BookUser}
+          tono="fiado"
+        >
           {deudores.length === 0 ? (
-            <Vacio texto="No hay fiados pendientes. Todo cobrado." />
+            <Vacio texto="No hay fiados pendientes. Todo cobrado." icon={HandCoins} />
           ) : (
             <ChartContainer
               config={deudaConfig}
@@ -448,6 +481,8 @@ export function ResumenTab() {
           subtitulo={`Productos que más facturaron ${
             periodoVentas === 'dia' ? 'hoy' : periodoVentas === 'mes' ? 'este mes' : 'este año'
           }`}
+          icon={TrendingUp}
+          tono="success"
           acciones={<Segmented value={periodoVentas} onChange={setPeriodoVentas} options={OPCIONES_PERIODO} />}
         >
           {productos.length === 0 ? (
@@ -479,9 +514,14 @@ export function ResumenTab() {
           )}
         </Panel>
 
-        <Panel titulo="Para reponer" subtitulo="Productos que se están agotando">
+        <Panel
+          titulo="Para reponer"
+          subtitulo="Productos que se están agotando"
+          icon={PackageSearch}
+          tono="danger"
+        >
           {alertasStock.length === 0 ? (
-            <Vacio texto="Ningún producto está bajo el mínimo. Bien surtido." />
+            <Vacio texto="Ningún producto está bajo el mínimo. Bien surtido." icon={PackageSearch} />
           ) : (
             <ul className="flex flex-col">
               {alertasStock.map((p) => {
@@ -515,9 +555,14 @@ export function ResumenTab() {
           )}
         </Panel>
 
-        <Panel titulo="Mermas" subtitulo="Perdido por rotura, vencimiento u otros motivos">
+        <Panel
+          titulo="Mermas"
+          subtitulo="Perdido por rotura, vencimiento u otros motivos"
+          icon={Trash2}
+          tono="naranja"
+        >
           {mermas.length === 0 ? (
-            <Vacio texto="No anotaste mermas de stock." />
+            <Vacio texto="No anotaste mermas de stock." icon={Trash2} />
           ) : (
             <>
               <ChartContainer
@@ -557,42 +602,91 @@ function Kpi({
   label,
   valor,
   tono,
+  icon: Icon,
 }: {
   label: string
   valor: string
-  tono: 'success' | 'danger' | 'celeste' | 'fiado'
+  tono: 'success' | 'danger' | 'celeste' | 'fiado' | 'violeta'
+  icon: LucideIcon
 }) {
-  const color = {
-    success: 'text-success',
-    danger: 'text-danger',
-    celeste: 'text-celeste',
-    fiado: 'text-fiado',
+  const est = {
+    success: {
+      caja: 'border-success/25 bg-success/5',
+      badge: 'bg-success/12 text-success',
+      texto: 'text-success',
+    },
+    danger: {
+      caja: 'border-danger/25 bg-danger/5',
+      badge: 'bg-danger/12 text-danger',
+      texto: 'text-danger',
+    },
+    celeste: {
+      caja: 'border-celeste/25 bg-celeste/5',
+      badge: 'bg-celeste/12 text-celeste',
+      texto: 'text-celeste',
+    },
+    fiado: {
+      caja: 'border-fiado/25 bg-fiado/5',
+      badge: 'bg-fiado/12 text-fiado',
+      texto: 'text-fiado',
+    },
+    violeta: {
+      caja: 'border-violeta/25 bg-violeta/5',
+      badge: 'bg-violeta/12 text-violeta',
+      texto: 'text-violeta',
+    },
   }[tono]
+
   return (
-    <div className="rounded-lg border border-border bg-card p-3">
-      <p className="text-[11px] font-medium text-muted-foreground">{label}</p>
-      <p className={`cifra mt-0.5 text-[17px] font-semibold ${color}`}>{valor}</p>
+    <div className={`rounded-lg border p-3 ${est.caja}`}>
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-[11px] font-medium text-muted-foreground">{label}</p>
+        <span className={`flex size-6 shrink-0 items-center justify-center rounded-md ${est.badge}`}>
+          <Icon className="size-3.5" />
+        </span>
+      </div>
+      <p className={`cifra mt-1 text-[17px] font-semibold ${est.texto}`}>{valor}</p>
     </div>
   )
 }
 
+const TONOS_PANEL = {
+  celeste: 'bg-celeste/12 text-celeste',
+  violeta: 'bg-violeta/12 text-violeta',
+  success: 'bg-success/12 text-success',
+  fiado: 'bg-fiado/12 text-fiado',
+  danger: 'bg-danger/12 text-danger',
+  naranja: 'bg-naranja/12 text-naranja',
+} as const
+
 function Panel({
   titulo,
   subtitulo,
+  icon: Icon,
+  tono = 'celeste',
   acciones,
   children,
 }: {
   titulo: string
   subtitulo: string
+  icon: LucideIcon
+  tono?: keyof typeof TONOS_PANEL
   acciones?: React.ReactNode
   children: React.ReactNode
 }) {
   return (
     <section className="rounded-lg border border-border bg-card">
       <div className="flex flex-wrap items-start justify-between gap-2 border-b border-border px-3.5 py-3">
-        <div>
-          <h2 className="text-[13px] font-semibold leading-tight text-foreground">{titulo}</h2>
-          <p className="text-[11.5px] text-muted-foreground">{subtitulo}</p>
+        <div className="flex items-start gap-2.5">
+          <span
+            className={`flex size-7 shrink-0 items-center justify-center rounded-lg ${TONOS_PANEL[tono]}`}
+          >
+            <Icon className="size-4" />
+          </span>
+          <div>
+            <h2 className="text-[13px] font-semibold leading-tight text-foreground">{titulo}</h2>
+            <p className="text-[11.5px] text-muted-foreground">{subtitulo}</p>
+          </div>
         </div>
         {acciones}
       </div>
@@ -614,8 +708,13 @@ function Leyenda({ items }: { items: [string, string][] }) {
   )
 }
 
-function Vacio({ texto }: { texto: string }) {
-  return <p className="py-6 text-center text-[13px] text-muted-foreground">{texto}</p>
+function Vacio({ texto, icon: Icon = ShoppingCart }: { texto: string; icon?: LucideIcon }) {
+  return (
+    <div className="flex flex-col items-center gap-2 py-6 text-center">
+      <Icon className="size-6 text-muted-foreground" strokeWidth={1.5} />
+      <p className="text-[13px] text-muted-foreground text-pretty">{texto}</p>
+    </div>
+  )
 }
 
 function Segmented<T extends string>({

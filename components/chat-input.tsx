@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Send } from 'lucide-react'
+import { Send, Sparkles } from 'lucide-react'
 
 export function ChatInput({
   onProcesar,
@@ -28,7 +28,8 @@ export function ChatInput({
   }
 
   return (
-    <div className="flex items-end gap-2 rounded-lg border border-border bg-card pl-3 pr-2 py-2">
+    <div className="flex items-center gap-2 rounded-xl border border-border bg-card py-1.5 pl-3 pr-1.5 transition-colors focus-within:border-celeste/50 focus-within:ring-2 focus-within:ring-celeste/15">
+      <Sparkles className="size-4 shrink-0 text-violeta" strokeWidth={1.9} />
       <input
         ref={inputRef}
         value={texto}
@@ -52,7 +53,7 @@ export function ChatInput({
         onClick={enviar}
         disabled={!texto.trim()}
         aria-label="Anotar"
-        className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground transition-opacity hover:bg-primary/90 disabled:opacity-35"
+        className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-linear-to-br from-celeste to-primary text-primary-foreground shadow-sm transition-all hover:opacity-90 disabled:opacity-35 disabled:shadow-none"
       >
         <Send className="size-4" />
       </button>

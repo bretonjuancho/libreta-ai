@@ -6,13 +6,13 @@ import type { Operacion, TipoOperacion } from '@/lib/types'
 import { Button } from '@/components/ui/button'
 import { MovimientoItem } from './movimiento-item'
 
-const SELLOS: Record<TipoOperacion, { palabra: string; clase: string }> = {
-  VENTA_CONTADO: { palabra: 'En caja', clase: 'border-success text-success' },
-  NUEVO_DEUDA: { palabra: 'Anotado', clase: 'border-fiado text-fiado' },
-  PAGO_DEUDA: { palabra: 'Cobrado', clase: 'border-success text-success' },
-  INGRESO_STOCK: { palabra: 'En stock', clase: 'border-primary text-primary' },
-  SALIDA_STOCK: { palabra: 'Descontado', clase: 'border-danger text-danger' },
-  GASTO_OPERATIVO: { palabra: 'Pagado', clase: 'border-danger text-danger' },
+const SELLOS: Record<TipoOperacion, { palabra: string; clase: string; fondo: string }> = {
+  VENTA_CONTADO: { palabra: 'En caja', clase: 'border-success text-success', fondo: 'from-success/10' },
+  NUEVO_DEUDA: { palabra: 'Anotado', clase: 'border-fiado text-fiado', fondo: 'from-fiado/10' },
+  PAGO_DEUDA: { palabra: 'Cobrado', clase: 'border-success text-success', fondo: 'from-celeste/10' },
+  INGRESO_STOCK: { palabra: 'En stock', clase: 'border-violeta text-violeta', fondo: 'from-violeta/10' },
+  SALIDA_STOCK: { palabra: 'Descontado', clase: 'border-danger text-danger', fondo: 'from-danger/10' },
+  GASTO_OPERATIVO: { palabra: 'Pagado', clase: 'border-naranja text-naranja', fondo: 'from-naranja/10' },
 }
 
 export function SuccessOverlay({
@@ -37,7 +37,7 @@ export function SuccessOverlay({
         role="dialog"
         aria-modal="true"
         aria-label="Registro confirmado"
-        className="w-full max-w-sm rounded-lg bg-card p-6 text-center animate-recibo sm:max-w-md"
+        className={`w-full max-w-sm rounded-lg bg-card bg-linear-to-b to-card p-6 text-center animate-recibo sm:max-w-md ${sello.fondo}`}
       >
         <div
           className={`animate-sello mx-auto inline-flex items-center gap-1.5 rounded-md border-2 px-3.5 py-1.5 ${sello.clase}`}

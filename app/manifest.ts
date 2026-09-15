@@ -7,7 +7,7 @@ export default function manifest(): MetadataRoute.Manifest {
     description: 'Asistente de stock, caja y fiados para el almacén de barrio.',
     start_url: '/',
     display: 'standalone',
-    background_color: '#f8f7f4',
+    background_color: '#f2f5f7',
     theme_color: '#0f2a44',
     lang: 'es',
     icons: [

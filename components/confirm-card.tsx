@@ -1,6 +1,6 @@
 'use client'
 
-import { Check, Pencil } from 'lucide-react'
+import { ArrowRight, Check, Pencil } from 'lucide-react'
 import type { Operacion } from '@/lib/types'
 import { formatARS, formatHora } from '@/lib/format'
 import { ETIQUETAS_MOTIVO, ETIQUETAS_TIPO } from '@/lib/parser'
@@ -73,24 +73,29 @@ export function ConfirmCard({
       >
         <div className="perforado mx-5 mt-4 h-2" aria-hidden />
 
-        <div className="px-5">
-          <div className="flex items-baseline justify-between gap-4">
-            <h2 className="text-[13px] font-semibold text-foreground">Recibo</h2>
-            <span className="cifra text-[11px] text-muted-foreground">{formatHora(op.fecha)}</span>
+        <div
+          className={`flex items-center gap-3 border-b border-border/70 bg-linear-to-r to-card px-5 py-3 ${visual.banda}`}
+        >
+          <span
+            className={`flex size-10 shrink-0 items-center justify-center rounded-lg ${visual.iconWrap}`}
+          >
+            <Icon className="size-5" strokeWidth={1.9} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <h2 className="truncate text-[13px] font-semibold text-foreground">
+              {ETIQUETAS_TIPO[op.tipo_operacion]}
+            </h2>
+            <p className="text-[11.5px] text-muted-foreground">Esto es lo que se va a anotar</p>
           </div>
+          <span className="cifra shrink-0 text-[11px] text-muted-foreground">
+            {formatHora(op.fecha)}
+          </span>
+        </div>
 
-          <p className="mt-2 text-sm italic leading-relaxed text-foreground text-pretty">
+        <div className="px-5">
+          <p className="mt-3 text-sm italic leading-relaxed text-foreground text-pretty">
             &ldquo;{op.texto_original}&rdquo;
           </p>
-
-          <div className="mt-3">
-            <span
-              className={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-semibold ${visual.chip}`}
-            >
-              <Icon className="size-3.5" />
-              {ETIQUETAS_TIPO[op.tipo_operacion]}
-            </span>
-          </div>
 
           <div className="mt-4 border-t border-border">
             {op.cliente && (
@@ -120,9 +125,9 @@ export function ConfirmCard({
               </div>
             )}
 
-            <div className="flex items-baseline justify-between gap-4 py-3">
+            <div className={`flex items-baseline justify-between gap-4 rounded-md px-2.5 py-3 ${visual.chip}`}>
               <span className="text-sm font-semibold text-foreground">Total anotado</span>
-              <span className="cifra text-xl font-semibold text-foreground">
+              <span className="cifra text-xl font-semibold">
                 {sinPlata ? `${op.items.reduce((a, it) => a + it.cantidad, 0)} u.` : formatARS(op.monto_total)}
               </span>
             </div>
@@ -132,7 +137,11 @@ export function ConfirmCard({
             <p className="mb-1.5 text-[11px] font-semibold text-muted-foreground">Va a pasar</p>
             <ul className="flex flex-col gap-1.5">
               {efectos(op).map((e, i) => (
-                <li key={i} className="text-[13px] leading-snug text-foreground text-pretty">
+                <li
+                  key={i}
+                  className="flex items-start gap-2 text-[13px] leading-snug text-foreground text-pretty"
+                >
+                  <ArrowRight className="mt-0.5 size-3.5 shrink-0 text-celeste" />
                   {e}
                 </li>
               ))}

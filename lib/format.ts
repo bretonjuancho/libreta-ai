@@ -13,6 +13,7 @@ export function formatFechaHora(iso: string): string {
     month: '2-digit',
     hour: '2-digit',
     minute: '2-digit',
+    hour12: false,
   })
 }
 
@@ -21,5 +22,6 @@ export function formatHora(iso: string): string {
   return d.toLocaleTimeString('es-AR', {
     hour: '2-digit',
     minute: '2-digit',
+    hour12: false,
   })
 }

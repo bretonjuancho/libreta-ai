@@ -31,6 +31,10 @@
   --color-danger-foreground: var(--danger-foreground);
   --color-fiado: var(--fiado);
   --color-fiado-foreground: var(--fiado-foreground);
+  --color-violeta: var(--violeta);
+  --color-violeta-foreground: var(--violeta-foreground);
+  --color-naranja: var(--naranja);
+  --color-naranja-foreground: var(--naranja-foreground);
 
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
@@ -90,6 +94,12 @@
   /* Ámbar de libreta: queda pendiente / fiado */
   --fiado: #8a5f10;
   --fiado-foreground: #ffffff;
+  /* Violeta: entra mercadería al stock */
+  --violeta: #5b4bb5;
+  --violeta-foreground: #ffffff;
+  /* Naranja: gastos del local */
+  --naranja: #b8560f;
+  --naranja-foreground: #ffffff;
 
   --chart-1: #1d6fa8;
   --chart-2: #1b7a4b;
