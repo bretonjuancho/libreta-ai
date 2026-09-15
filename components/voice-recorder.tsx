@@ -1,11 +1,8 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Mic, Square, X } from 'lucide-react'
+import { Mic, Square, TriangleAlert, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-
-// Transcripción simulada (fallback): se escribe palabra por palabra como si fuera Whisper.
-const FRASE_SIMULADA = 'Anotale dos Cocas y un paquete de fideos al Tano, me paga el viernes, $4500'
 
 // Tipos mínimos para la Web Speech API (no siempre presentes en lib.dom).
 interface ResultadoVoz {
@@ -52,47 +49,54 @@ function crearReconocimiento(): ReconocimientoVoz | null {
 export function VoiceRecorder({ onProcesar }: { onProcesar: (texto: string) => void }) {
   const [grabando, setGrabando] = useState(false)
   const [transcripcion, setTranscripcion] = useState('')
-  const [vozReal, setVozReal] = useState(false)
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  // null = aún no detectado (primer render / SSR)
+  const [soporteVoz, setSoporteVoz] = useState<boolean | null>(null)
+  const [contextoSeguro, setContextoSeguro] = useState(true)
   const recRef = useRef<ReconocimientoVoz | null>(null)
-  const finalRef = useRef('')
+
+  useEffect(() => {
+    setSoporteVoz(
+      typeof window !== 'undefined' &&
+        !!(window.SpeechRecognition ?? window.webkitSpeechRecognition),
+    )
+    setContextoSeguro(
+      typeof window === 'undefined' ? true : window.isSecureContext,
+    )
+  }, [])
 
   useEffect(() => {
     return () => {
-      if (timerRef.current) clearInterval(timerRef.current)
-      try {
-        recRef.current?.abort()
-      } catch {
-        // ignorar
-      }
+      detenerReconocimiento()
     }
   }, [])
 
-  const empezarSimulado = () => {
-    setVozReal(false)
-    setTranscripcion('')
-    const palabras = FRASE_SIMULADA.split(' ')
-    let i = 0
-    timerRef.current = setInterval(() => {
-      i++
-      setTranscripcion(palabras.slice(0, i).join(' '))
-      if (i >= palabras.length && timerRef.current) {
-        clearInterval(timerRef.current)
-        timerRef.current = null
-      }
-    }, 130)
+  const detenerReconocimiento = () => {
+    const rec = recRef.current
+    recRef.current = null
+    if (!rec) return
+    rec.onresult = null
+    rec.onerror = null
+    rec.onend = null
+    try {
+      rec.abort()
+    } catch {
+      // ignorar
+    }
   }
 
   const empezar = () => {
-    setGrabando(true)
+    setError(null)
     setTranscripcion('')
-    finalRef.current = ''
     const rec = crearReconocimiento()
     if (!rec) {
-      empezarSimulado()
+      setError(
+        !contextoSeguro
+          ? 'El micrófono necesita HTTPS. Entrá por HTTPS para dictar, o usá el campo de texto.'
+          : 'Este navegador no soporta dictado por voz. Usá el campo de texto.',
+      )
       return
     }
-    setVozReal(true)
     recRef.current = rec
     rec.onresult = (ev) => {
       let interina = ''
@@ -102,66 +106,60 @@ export function VoiceRecorder({ onProcesar }: { onProcesar: (texto: string) => v
         if (r.isFinal) final += r[0]?.transcript ?? ''
         else interina += r[0]?.transcript ?? ''
       }
-      finalRef.current = final.trim()
-      setTranscripcion((final + ' ' + interina).trim())
+      const texto = (final + ' ' + interina).trim()
+      if (texto) {
+        setTranscripcion(texto)
+        setError(null)
+      }
     }
     rec.onerror = () => {
-      // Si falla el micrófono/permiso, cae al modo simulado para no bloquear.
-      try {
-        rec.abort()
-      } catch {
-        // ignorar
-      }
-      recRef.current = null
-      empezarSimulado()
+      detenerReconocimiento()
+      setGrabando(false)
+      setError('No se pudo usar el micrófono. Revisá el permiso, o usá el campo de texto.')
     }
     rec.onend = () => {
       recRef.current = null
     }
     try {
       rec.start()
+      setGrabando(true)
     } catch {
       recRef.current = null
-      empezarSimulado()
+      setError('No se pudo iniciar el micrófono. Probá de nuevo o usá el campo de texto.')
     }
   }
 
   const cancelar = () => {
-    if (timerRef.current) clearInterval(timerRef.current)
-    timerRef.current = null
-    try {
-      recRef.current?.abort()
-    } catch {
-      // ignorar
-    }
-    recRef.current = null
+    detenerReconocimiento()
     setGrabando(false)
     setTranscripcion('')
+    setError(null)
   }
 
   const terminar = () => {
-    if (timerRef.current) clearInterval(timerRef.current)
-    timerRef.current = null
-    try {
-      recRef.current?.stop()
-    } catch {
-      // ignorar
+    const texto = transcripcion.trim()
+    if (!texto) {
+      // No se procesa nada: solo sale de acá lo que realmente se escuchó.
+      setError('No se entendió nada del audio. Hablá de nuevo o usá el campo de texto.')
+      return
     }
-    recRef.current = null
-    const texto = (transcripcion || finalRef.current || FRASE_SIMULADA).trim()
+    detenerReconocimiento()
     setGrabando(false)
     setTranscripcion('')
+    setError(null)
     onProcesar(texto)
   }
 
   if (!grabando) {
+    const sinSoporte = soporteVoz === false
     return (
       <div className="flex flex-col items-center gap-3 py-2">
         <button
           type="button"
           onClick={empezar}
+          disabled={sinSoporte}
           aria-label="Presioná para dictar"
-          className="group relative flex size-24 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform active:scale-95"
+          className="group relative flex size-24 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform active:scale-95 disabled:opacity-40"
         >
           <span className="absolute inset-0 rounded-full bg-primary/20 blur-md" aria-hidden />
           <Mic className="size-10" />
@@ -171,6 +169,20 @@ export function VoiceRecorder({ onProcesar }: { onProcesar: (texto: string) => v
           <p className="mt-0.5 text-xs text-muted-foreground text-pretty">
             &ldquo;Anotale 2 cocas y fideos al Tano&rdquo;
           </p>
+          {error ? (
+            <p className="mx-auto mt-1.5 flex max-w-60 items-start justify-center gap-1 text-[11px] font-medium text-danger text-pretty">
+              <TriangleAlert className="mt-px size-3.5 shrink-0" />
+              {error}
+            </p>
+          ) : (
+            sinSoporte && (
+              <p className="mx-auto mt-1.5 max-w-60 text-[11px] text-muted-foreground text-pretty">
+                {!contextoSeguro
+                  ? 'Estás en HTTP: el micrófono no está disponible. Entrá por HTTPS o escribí abajo.'
+                  : 'Este navegador no soporta dictado por voz. Escribí el movimiento abajo.'}
+              </p>
+            )
+          )}
         </div>
       </div>
     )
@@ -202,9 +214,10 @@ export function VoiceRecorder({ onProcesar }: { onProcesar: (texto: string) => v
       <p className="min-h-10 w-full text-center text-sm leading-relaxed text-pretty">
         {transcripcion ? `"${transcripcion}"` : 'Empezá a hablar…'}
       </p>
-      {!vozReal && (
-        <p className="text-center text-[11px] text-primary-foreground/70">
-          Vista previa simulada: este navegador no soporta dictado por voz.
+      {error && (
+        <p className="flex items-start justify-center gap-1.5 text-center text-xs font-medium text-primary-foreground text-pretty">
+          <TriangleAlert className="mt-px size-4 shrink-0" />
+          {error}
         </p>
       )}
 
