@@ -12,12 +12,16 @@ interface ResultadoVoz {
 interface EventoResultadoVoz {
   results: ArrayLike<ResultadoVoz>
 }
+interface EventoErrorVoz {
+  error: string
+  message?: string
+}
 interface ReconocimientoVoz {
   lang: string
   interimResults: boolean
   continuous: boolean
   onresult: ((ev: EventoResultadoVoz) => void) | null
-  onerror: (() => void) | null
+  onerror: ((ev: EventoErrorVoz) => void) | null
   onend: (() => void) | null
   start: () => void
   stop: () => void
@@ -46,10 +50,54 @@ function crearReconocimiento(): ReconocimientoVoz | null {
   }
 }
 
+// Traduce el código de error de la Web Speech API a un mensaje accionable.
+function mensajeDeErrorVoz(codigo: string): string {
+  switch (codigo) {
+    case 'not-allowed':
+    case 'service-not-allowed':
+      return 'El navegador no tiene permiso para usar el micrófono. Habilitalo desde el candado de la barra de direcciones y en los permisos de micrófono de Windows, o usá el campo de texto.'
+    case 'audio-capture':
+      return 'No se encontró un micrófono disponible. Conectá uno y probá de nuevo, o usá el campo de texto.'
+    case 'network':
+      return 'El dictado necesita internet para reconocer la voz y no pudo conectarse. Revisá la conexión o el firewall, o usá el campo de texto.'
+    case 'no-speech':
+      return 'No se escuchó nada. Acercate al micrófono, hablá y probá de nuevo, o usá el campo de texto.'
+    case 'aborted':
+      return 'Se cortó el dictado. Probá de nuevo, o usá el campo de texto.'
+    case 'language-not-supported':
+      return 'El navegador no soporta dictado en español. Usá el campo de texto.'
+    default:
+      return 'No se pudo usar el micrófono. Revisá el permiso, o usá el campo de texto.'
+  }
+}
+
+// Pide el micrófono antes de dictar: confirma el permiso y, si el navegador
+// o el sistema lo bloquean, devuelve un mensaje que explica el motivo real.
+async function verificarMicrofono(): Promise<string | null> {
+  if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+    return null
+  }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+    stream.getTracks().forEach((t) => t.stop())
+    return null
+  } catch (err) {
+    const nombre = err instanceof DOMException ? err.name : ''
+    if (nombre === 'NotAllowedError' || nombre === 'SecurityError')
+      return 'El navegador bloqueó el micrófono. Habilitalo desde el candado de la barra de direcciones y en los permisos de micrófono de Windows, o usá el campo de texto.'
+    if (nombre === 'NotFoundError' || nombre === 'DevicesNotFoundError')
+      return 'No se encontró ningún micrófono conectado. Conectá uno y probá de nuevo, o usá el campo de texto.'
+    if (nombre === 'NotReadableError' || nombre === 'TrackStartError')
+      return 'Otro programa está usando el micrófono. Cerrá otras apps de audio y probá de nuevo, o usá el campo de texto.'
+    return 'No se pudo acceder al micrófono. Revisá el permiso, o usá el campo de texto.'
+  }
+}
+
 export function VoiceRecorder({ onProcesar }: { onProcesar: (texto: string) => void }) {
   const [grabando, setGrabando] = useState(false)
   const [transcripcion, setTranscripcion] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [preparando, setPreparando] = useState(false)
   // null = aún no detectado (primer render / SSR)
   const [soporteVoz, setSoporteVoz] = useState<boolean | null>(null)
   const [contextoSeguro, setContextoSeguro] = useState(true)
@@ -85,16 +133,26 @@ export function VoiceRecorder({ onProcesar }: { onProcesar: (texto: string) => v
     }
   }
 
-  const empezar = () => {
+  const empezar = async () => {
     setError(null)
     setTranscripcion('')
+    if (!contextoSeguro) {
+      setError(
+        'El micrófono necesita HTTPS. Entrá por HTTPS para dictar, o usá el campo de texto.',
+      )
+      return
+    }
+    setPreparando(true)
+    const problemaMicrofono = await verificarMicrofono()
+    if (problemaMicrofono) {
+      setPreparando(false)
+      setError(problemaMicrofono)
+      return
+    }
     const rec = crearReconocimiento()
     if (!rec) {
-      setError(
-        !contextoSeguro
-          ? 'El micrófono necesita HTTPS. Entrá por HTTPS para dictar, o usá el campo de texto.'
-          : 'Este navegador no soporta dictado por voz. Usá el campo de texto.',
-      )
+      setPreparando(false)
+      setError('Este navegador no soporta dictado por voz. Usá el campo de texto.')
       return
     }
     recRef.current = rec
@@ -112,10 +170,10 @@ export function VoiceRecorder({ onProcesar }: { onProcesar: (texto: string) => v
         setError(null)
       }
     }
-    rec.onerror = () => {
+    rec.onerror = (ev) => {
       detenerReconocimiento()
       setGrabando(false)
-      setError('No se pudo usar el micrófono. Revisá el permiso, o usá el campo de texto.')
+      setError(mensajeDeErrorVoz(ev?.error ?? ''))
     }
     rec.onend = () => {
       recRef.current = null
@@ -126,6 +184,8 @@ export function VoiceRecorder({ onProcesar }: { onProcesar: (texto: string) => v
     } catch {
       recRef.current = null
       setError('No se pudo iniciar el micrófono. Probá de nuevo o usá el campo de texto.')
+    } finally {
+      setPreparando(false)
     }
   }
 
@@ -157,9 +217,12 @@ export function VoiceRecorder({ onProcesar }: { onProcesar: (texto: string) => v
         <button
           type="button"
           onClick={empezar}
-          disabled={sinSoporte}
+          disabled={sinSoporte || preparando || !contextoSeguro}
+          aria-busy={preparando}
           aria-label="Presioná para dictar"
-          className="relative flex size-20 items-center justify-center rounded-full bg-linear-to-br from-celeste to-primary text-primary-foreground shadow-lg shadow-celeste/25 transition-transform active:scale-95 disabled:opacity-35 disabled:shadow-none"
+          className={`relative flex size-20 items-center justify-center rounded-full bg-linear-to-br from-celeste to-primary text-primary-foreground shadow-lg shadow-celeste/25 transition-transform active:scale-95 disabled:opacity-35 disabled:shadow-none ${
+            preparando ? 'animate-pulse' : ''
+          }`}
         >
           <span
             className="absolute inset-0 rounded-full ring-4 ring-celeste/15"
@@ -170,7 +233,7 @@ export function VoiceRecorder({ onProcesar }: { onProcesar: (texto: string) => v
         <div className="text-center">
           <p className="flex items-center justify-center gap-1.5 text-[13px] font-semibold text-foreground">
             <AudioLines className="size-4 text-celeste" strokeWidth={2} />
-            Presioná para dictar
+            {preparando ? 'Pidiendo permiso…' : 'Presioná para dictar'}
           </p>
           <p className="mt-0.5 text-[11.5px] text-muted-foreground text-pretty">
             &ldquo;Anotale 2 cocas y fideos al Tano&rdquo;
@@ -180,12 +243,14 @@ export function VoiceRecorder({ onProcesar }: { onProcesar: (texto: string) => v
               <TriangleAlert className="mt-px size-3.5 shrink-0" />
               {error}
             </p>
+          ) : !contextoSeguro ? (
+            <p className="mx-auto mt-1.5 max-w-60 text-[11.5px] text-muted-foreground text-pretty">
+              Estás en HTTP: el micrófono no está disponible. Entrá por HTTPS o escribí abajo.
+            </p>
           ) : (
             sinSoporte && (
               <p className="mx-auto mt-1.5 max-w-60 text-[11.5px] text-muted-foreground text-pretty">
-                {!contextoSeguro
-                  ? 'Estás en HTTP: el micrófono no está disponible. Entrá por HTTPS o escribí abajo.'
-                  : 'Este navegador no soporta dictado por voz. Escribí el movimiento abajo.'}
+                Este navegador no soporta dictado por voz. Escribí el movimiento abajo.
               </p>
             )
           )}
