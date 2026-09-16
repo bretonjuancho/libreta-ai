@@ -3,8 +3,6 @@
 import { useMemo, useState } from 'react'
 import {
   Activity,
-  BarChart3,
-  BookUser,
   HandCoins,
   PackageSearch,
   ReceiptText,
@@ -38,13 +36,6 @@ import { PERFIL } from '@/lib/mock-data'
 import { formatARS } from '@/lib/format'
 import { ETIQUETAS_MOTIVO } from '@/lib/parser'
 import type { Operacion } from '@/lib/types'
-
-const FRANJAS = [
-  { label: 'Mañana', desde: 6, hasta: 12 },
-  { label: 'Mediodía', desde: 12, hasta: 15 },
-  { label: 'Tarde', desde: 15, hasta: 20 },
-  { label: 'Noche', desde: 20, hasta: 30 },
-] as const
 
 const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
 
@@ -102,11 +93,6 @@ function compacto(n: number): string {
   return `$${n}`
 }
 
-const flujoConfig = {
-  ingresos: { label: 'Ingresos', color: 'var(--chart-2)' },
-  egresos: { label: 'Egresos', color: 'var(--chart-5)' },
-} satisfies ChartConfig
-
 const flujoLineaConfig = {
   dinero: { label: 'Dinero (neto)', color: 'var(--chart-4)' },
   stock: { label: 'Stock (unidades netas)', color: 'var(--chart-1)' },
@@ -137,23 +123,6 @@ export function ResumenTab() {
     return { ingresos, egresos, balance: ingresos - egresos, deuda }
   }, [estado, ahora])
 
-  const flujo = useMemo(() => {
-    return FRANJAS.map((f) => {
-      let ingresos = 0
-      let egresos = 0
-      for (const op of estado.historial) {
-        if (!esHoy(op.fecha, ahora)) continue
-        const h = new Date(op.fecha).getHours()
-        const hh = h < 6 ? h + 24 : h
-        if (hh < f.desde || hh >= f.hasta) continue
-        if (op.tipo_operacion === 'VENTA_CONTADO' || op.tipo_operacion === 'PAGO_DEUDA')
-          ingresos += op.monto_total
-        if (op.tipo_operacion === 'GASTO_OPERATIVO') egresos += op.monto_total
-      }
-      return { franja: f.label, ingresos, egresos }
-    })
-  }, [estado, ahora])
-
   const caja = useMemo(
     () => [
       {
@@ -169,16 +138,6 @@ export function ResumenTab() {
         fill: 'var(--color-transferencia)',
       },
     ],
-    [estado],
-  )
-
-  const deudores = useMemo(
-    () =>
-      estado.clientes
-        .filter((c) => c.saldo_deuda > 0)
-        .sort((a, b) => b.saldo_deuda - a.saldo_deuda)
-        .slice(0, 5)
-        .map((c) => ({ nombre: c.nombre, deuda: c.saldo_deuda })),
     [estado],
   )
 
@@ -245,21 +204,11 @@ export function ResumenTab() {
 
   const totalMermaValor = mermas.reduce((s, m) => s + m.valor, 0)
 
-  const alertasStock = useMemo(
-    () =>
-      estado.productos
-        .filter((p) => p.stock <= p.stock_minimo)
-        .sort((a, b) => a.stock / a.stock_minimo - b.stock / b.stock_minimo)
-        .slice(0, 5),
-    [estado],
-  )
-
   const totalAlertas = useMemo(
     () => estado.productos.filter((p) => p.stock <= p.stock_minimo).length,
     [estado],
   )
 
-  const deudaConfig = { deuda: { label: 'Deuda', color: 'var(--chart-3)' } } satisfies ChartConfig
   const prodConfig = { monto: { label: 'Vendido', color: 'var(--chart-2)' } } satisfies ChartConfig
   const mermaConfig = { valor: { label: 'Pérdida', color: 'var(--chart-5)' } } satisfies ChartConfig
   const mostrarDinero = metricaFlujo !== 'stock'
@@ -294,38 +243,6 @@ export function ResumenTab() {
       </section>
 
       <div className="grid items-start gap-4 xl:grid-cols-2">
-        <Panel
-          titulo="Flujo del día"
-          subtitulo="Ingresos y egresos por franja horaria"
-          icon={BarChart3}
-        >
-          <ChartContainer config={flujoConfig} className="h-[190px] w-full">
-            <BarChart accessibilityLayer data={flujo} margin={{ left: -8, right: 8, top: 8 }}>
-              <XAxis
-                dataKey="franja"
-                tickLine={false}
-                axisLine={false}
-                tickMargin={8}
-                className="text-[10px]"
-              />
-              <YAxis
-                tickLine={false}
-                axisLine={false}
-                width={44}
-                tickFormatter={(v: number) => compacto(v)}
-                className="text-[10px]"
-              />
-              <ChartTooltip
-                cursor={false}
-                content={<ChartTooltipContent formatter={(v) => formatARS(Number(v))} />}
-              />
-              <Bar dataKey="ingresos" fill="var(--color-ingresos)" radius={[3, 3, 0, 0]} />
-              <Bar dataKey="egresos" fill="var(--color-egresos)" radius={[3, 3, 0, 0]} />
-            </BarChart>
-          </ChartContainer>
-          <Leyenda items={[['var(--chart-2)', 'Ingresos'], ['var(--chart-5)', 'Egresos']]} />
-        </Panel>
-
         <Panel
           titulo="Flujo de stock y dinero"
           subtitulo={`Movimiento neto ${
@@ -448,40 +365,6 @@ export function ResumenTab() {
         </Panel>
 
         <Panel
-          titulo="Deuda en la calle"
-          subtitulo="Quiénes te deben más"
-          icon={BookUser}
-          tono="fiado"
-        >
-          {deudores.length === 0 ? (
-            <Vacio texto="No hay fiados pendientes. Todo cobrado." icon={HandCoins} />
-          ) : (
-            <ChartContainer
-              config={deudaConfig}
-              className="w-full"
-              style={{ height: deudores.length * 40 + 16 }}
-            >
-              <BarChart accessibilityLayer data={deudores} layout="vertical" margin={{ left: 4, right: 56 }}>
-                <YAxis
-                  dataKey="nombre"
-                  type="category"
-                  tickLine={false}
-                  axisLine={false}
-                  width={72}
-                  className="text-[11px]"
-                />
-                <XAxis type="number" hide />
-                <ChartTooltip
-                  cursor={false}
-                  content={<ChartTooltipContent formatter={(v) => formatARS(Number(v))} />}
-                />
-                <Bar dataKey="deuda" fill="var(--color-deuda)" radius={3} />
-              </BarChart>
-            </ChartContainer>
-          )}
-        </Panel>
-
-        <Panel
           titulo="Lo más vendido"
           subtitulo={`Productos que más facturaron ${
             periodoVentas === 'dia' ? 'hoy' : periodoVentas === 'mes' ? 'este mes' : 'este año'
@@ -516,47 +399,6 @@ export function ResumenTab() {
                 <Bar dataKey="monto" fill="var(--color-monto)" radius={3} />
               </BarChart>
             </ChartContainer>
-          )}
-        </Panel>
-
-        <Panel
-          titulo="Para reponer"
-          subtitulo="Productos que se están agotando"
-          icon={PackageSearch}
-          tono="danger"
-        >
-          {alertasStock.length === 0 ? (
-            <Vacio texto="Ningún producto está bajo el mínimo. Bien surtido." icon={PackageSearch} />
-          ) : (
-            <ul className="flex flex-col">
-              {alertasStock.map((p) => {
-                const pct = Math.min(100, Math.round((p.stock / Math.max(1, p.stock_minimo)) * 100))
-                const critico = p.stock === 0
-                return (
-                  <li
-                    key={p.id}
-                    className="flex flex-col gap-1.5 border-b border-border/70 py-2.5 last:border-b-0"
-                  >
-                    <div className="flex items-baseline justify-between gap-3">
-                      <span className="truncate text-[13.5px] text-foreground">{p.nombre}</span>
-                      <span
-                        className={`cifra shrink-0 text-[12.5px] font-semibold ${
-                          critico ? 'text-danger' : 'text-fiado'
-                        }`}
-                      >
-                        {p.stock} {p.unidad}
-                      </span>
-                    </div>
-                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-                      <div
-                        className={`h-full rounded-full ${critico ? 'bg-danger' : 'bg-fiado'}`}
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
-                  </li>
-                )
-              })}
-            </ul>
           )}
         </Panel>
 
