@@ -16,7 +16,7 @@ const chivoMono = Chivo_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'LibretaAI — El boliche en orden',
+  title: 'LibretaAI — El negocio en orden',
   description:
     'Asistente de stock, caja y fiados para el almacén de barrio. Actualizá todo hablando o escribiendo.',
 }

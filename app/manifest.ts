@@ -2,7 +2,7 @@ import type { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'LibretaAI — El boliche en orden',
+    name: 'LibretaAI — El negocio en orden',
     short_name: 'LibretaAI',
     description: 'Asistente de stock, caja y fiados para el almacén de barrio.',
     start_url: '/',

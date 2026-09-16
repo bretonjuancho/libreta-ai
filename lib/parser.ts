@@ -271,7 +271,7 @@ function extraerItems(texto: string, productos?: Producto[]): Item[] {
 
 const PALABRAS_EXCLUIDAS_CLIENTE = [
   'caja',
-  'boliche',
+  'negocio',
   'viernes',
   'lunes',
   'martes',
@@ -321,7 +321,7 @@ function detectarCliente(textoOriginal: string): string | null {
 
   // Nombre propio (con mayúscula) precedido de "a/al/a la", en cualquier parte del mensaje
   // original, ej. "Le vendí 3 botellas de aceite a Damián por 6000 pesos". Requiere
-  // mayúscula para no confundirse con "a la caja", "al boliche", etc.
+  // mayúscula para no confundirse con "a la caja", "al negocio", etc.
   const mConector = textoOriginal.match(/\b(?:al|a la|a)\s+([A-ZÁÉÍÓÚÑ][a-záéíóúñ]{2,})\b/)
   if (mConector && !PALABRAS_EXCLUIDAS_CLIENTE.includes(mConector[1].toLowerCase())) {
     return capitalizar(mConector[1])

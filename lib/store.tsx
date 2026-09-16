@@ -208,7 +208,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       <div className="flex min-h-dvh items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3">
           <div className="size-10 animate-spin rounded-full border-4 border-muted border-t-celeste" />
-          <p className="text-sm text-muted-foreground">Cargando el boliche…</p>
+          <p className="text-sm text-muted-foreground">Cargando el negocio…</p>
         </div>
       </div>
     )

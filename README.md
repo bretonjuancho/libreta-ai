@@ -1,4 +1,4 @@
-# LibretaAI — El boliche en orden
+# LibretaAI — El negocio en orden
 
 Asistente de stock, caja y fiados para el almacén de barrio. Actualizá todo hablando o escribiendo.
 
