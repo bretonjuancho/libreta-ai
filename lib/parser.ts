@@ -6,8 +6,9 @@ import type {
   Producto,
   TipoOperacion,
 } from './types'
+import { CATALOGO_PRODUCTOS, NOMBRES_CLIENTES } from './datos-base'
 
-const NOMBRES_CONOCIDOS = ['Tano', 'Laura', 'Marta']
+const NOMBRES_CONOCIDOS = NOMBRES_CLIENTES
 
 const PALABRAS_NUMERO: Record<string, number> = {
   un: 1,
@@ -36,22 +37,13 @@ interface CatalogoEntry {
   precio: number
 }
 
-const CATALOGO: CatalogoEntry[] = [
-  { alias: ['coca', 'cocas', 'coca-cola', 'gaseosa'], nombre: 'Coca-Cola 1.5L', precio: 3000 },
-  { alias: ['fideo', 'fideos', 'tallarines'], nombre: 'Fideos Lucchetti 500g', precio: 1500 },
-  { alias: ['ñoqui', 'ñoquis', 'noqui', 'noquis'], nombre: 'Ñoquis Lucchetti', precio: 1600 },
-  { alias: ['yerba'], nombre: 'Yerba Playadito 1kg', precio: 5200 },
-  { alias: ['aceite'], nombre: 'Aceite Girasol 1.5L', precio: 4200 },
-  { alias: ['leche', 'leches'], nombre: 'Leche Entera 1L', precio: 1800 },
-  { alias: ['pan', 'panes'], nombre: 'Pan', precio: 500 },
-  { alias: ['queso'], nombre: 'Queso cremoso', precio: 8900 },
-  { alias: ['fiambre'], nombre: 'Fiambre', precio: 7600 },
-  { alias: ['galletita', 'galletitas'], nombre: 'Galletitas', precio: 1200 },
-  { alias: ['atun', 'atún'], nombre: 'Atún', precio: 2400 },
-  { alias: ['agua', 'aguas'], nombre: 'Agua Mineral 2L', precio: 1400 },
-  { alias: ['azucar', 'azúcar'], nombre: 'Azúcar 1kg', precio: 2100 },
-  { alias: ['arroz'], nombre: 'Arroz 1kg', precio: 1900 },
-]
+// El catálogo que entiende el parser sale de los mismos datos que el inventario
+// de la app (lib/datos-base.ts), así un producto nuevo se reconoce al dictarlo.
+const CATALOGO: CatalogoEntry[] = CATALOGO_PRODUCTOS.map((p) => ({
+  alias: p.aliases,
+  nombre: p.nombre,
+  precio: p.precio,
+}))
 
 function normalizar(texto: string): string {
   return texto.toLowerCase().trim()
@@ -63,8 +55,12 @@ function escaparRegex(s: string): string {
 
 // \b no sirve acá: no considera vocales acentuadas ni la ñ como letras
 // (ej. el alias "ñoquis" jamás matchearía). Bordes "palabra" inclusive.
-function regexPalabra(alias: string): RegExp {
-  return new RegExp(`(?<![a-záéíóúñ0-9])${escaparRegex(alias)}(?![a-záéíóúñ0-9])`, 'i')
+// Bordes "palabra" inclusive: \b no sirve acá porque no considera vocales
+// acentuadas ni la ñ como letras (el alias "ñoquis" jamás matchearía).
+// La variante global recorre todas las apariciones de un alias (el mismo producto
+// puede nombrarse dos veces, o un alias corto aparecer dentro de otro más largo).
+function regexPalabraGlobal(alias: string): RegExp {
+  return new RegExp(`(?<![a-záéíóúñ0-9])${escaparRegex(alias)}(?![a-záéíóúñ0-9])`, 'gi')
 }
 
 function nuevoId(): string {
@@ -200,21 +196,34 @@ function extraerItemGenerico(
 }
 
 function extraerItems(texto: string, productos?: Producto[]): Item[] {
-  // Encuentra todas las menciones de productos y las ordena por posición en el texto,
-  // para poder acotar la ventana de búsqueda de precio de cada uno (hasta el próximo producto).
-  const matches: MatchCatalogo[] = []
-  const vistos = new Set<string>()
-
+  // Junta todas las apariciones de todos los alias. Después elige, de más larga
+  // a más corta, las que no se solapan: así "pan rallado" gana sobre "pan" y
+  // "jabón en polvo" no tapa al "jabón" de tocador de más adelante. Cada producto
+  // se registra una sola vez.
+  const candidatos: MatchCatalogo[] = []
   for (const entry of CATALOGO) {
-    if (vistos.has(entry.nombre)) continue
     for (const alias of entry.alias) {
-      const m = texto.match(regexPalabra(alias))
-      if (m && m.index !== undefined) {
-        vistos.add(entry.nombre)
-        matches.push({ entry, index: m.index, length: m[0].length })
-        break
+      const re = regexPalabraGlobal(alias)
+      let m: RegExpExecArray | null
+      while ((m = re.exec(texto)) !== null) {
+        candidatos.push({ entry, index: m.index, length: m[0].length })
+        if (m.index === re.lastIndex) re.lastIndex++
       }
     }
+  }
+
+  candidatos.sort((a, b) => b.length - a.length || a.index - b.index)
+
+  const usados = new Set<string>()
+  const ocupados: [number, number][] = []
+  const matches: MatchCatalogo[] = []
+  for (const c of candidatos) {
+    if (usados.has(c.entry.nombre)) continue
+    const fin = c.index + c.length
+    if (ocupados.some(([s, e]) => c.index < e && fin > s)) continue
+    usados.add(c.entry.nombre)
+    ocupados.push([c.index, fin])
+    matches.push(c)
   }
 
   matches.sort((a, b) => a.index - b.index)
@@ -371,7 +380,7 @@ function clasificar(texto: string, cliente: string | null): TipoOperacion {
 
   if (
     negacionDePago ||
-    /anotal|anot[áa]|anota|fial|fiado|\bfia\b|me paga\b|me va a pagar|\bdebe\b|le fi[ao]|a cuenta|se lo fi[ée]/i.test(
+    /anotal|anot[áa]|anota|fial|fiado|\bfia\b|me paga\b|me va a pagar|\bdebe\b|le fi[aoóeé]|me fi[oó]|se lo fi[éeoó]|a cuenta/i.test(
       texto,
     )
   )

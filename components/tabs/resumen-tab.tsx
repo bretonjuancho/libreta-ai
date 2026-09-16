@@ -254,6 +254,11 @@ export function ResumenTab() {
     [estado],
   )
 
+  const totalAlertas = useMemo(
+    () => estado.productos.filter((p) => p.stock <= p.stock_minimo).length,
+    [estado],
+  )
+
   const deudaConfig = { deuda: { label: 'Deuda', color: 'var(--chart-3)' } } satisfies ChartConfig
   const prodConfig = { monto: { label: 'Vendido', color: 'var(--chart-2)' } } satisfies ChartConfig
   const mermaConfig = { valor: { label: 'Pérdida', color: 'var(--chart-5)' } } satisfies ChartConfig
@@ -281,9 +286,9 @@ export function ResumenTab() {
         <Kpi tono="fiado" label="En la calle" valor={formatARS(kpis.deuda)} icon={HandCoins} />
         <Kpi tono="violeta" label="Ticket promedio" valor={formatARS(ticketPromedio)} icon={ReceiptText} />
         <Kpi
-          tono={alertasStock.length > 0 ? 'danger' : 'success'}
+          tono={totalAlertas > 0 ? 'danger' : 'success'}
           label="Para reponer"
-          valor={`${alertasStock.length} ${alertasStock.length === 1 ? 'producto' : 'productos'}`}
+          valor={`${totalAlertas} ${totalAlertas === 1 ? 'producto' : 'productos'}`}
           icon={PackageSearch}
         />
       </section>

@@ -12,7 +12,7 @@ import {
 import type { Cliente, EstadoApp, Operacion, Producto } from './types'
 import { getEstadoInicial } from './mock-data'
 
-const STORAGE_KEY = 'libretaai-estado-v1'
+const STORAGE_KEY = 'libretaai-estado-v2'
 
 interface StoreCtx {
   estado: EstadoApp
