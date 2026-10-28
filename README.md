@@ -4,6 +4,16 @@ Asistente de stock, caja y fiados para el almacén de barrio. Actualizá todo ha
 
 LibretaAI es una app mobile-first (PWA-ready) pensada para el mostrador: el almacenero registra ventas, fiados, pagos, ingresos/salidas de stock y gastos operativos con lenguaje natural, por texto o voz, y la app lo convierte en una operación estructurada lista para confirmar.
 
+## 🏆 Ganador del Hackaton Litoral v0.1
+
+Este proyecto fue **ganador del "Hackaton Litoral v0.1"**, organizado por **Remo Litoral**.
+
+El desafío consistía en armar una aplicación **desde cero en un solo día** usando [v0 de Vercel](https://v0.dev), y luego exponer la problemática que resuelve en un **pitch de 2 minutos**.
+
+La problemática que atacamos: el almacenero de barrio lleva el stock, la caja y los fiados en cuadernos o de memoria, y no tiene tiempo de cargar datos en sistemas complejos. LibretaAI le permite registrar todo hablando o escribiendo, como si le dictara a su libreta.
+
+## Estado del proyecto
+
 Proyecto actual: prototipo funcional en Next.js con estado local (persistido en `localStorage`) y datos de demo (`Almacén Don Pedro`).
 
 ## ¿Qué hace hoy?
